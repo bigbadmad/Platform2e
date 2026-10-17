@@ -1,0 +1,35 @@
+{
+  "name": "char",
+  "version": "1.0.0",
+  "description": "AD&D 2e Character Generator",
+  "main": "generator.js",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "scripts": {
+  "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+  "build": "tsc",
+  "build:clean": "npm run clean && npm run build",
+  "start": "tsc -w",
+  "serve": "npx http-server -c-1 -p 5173 .",
+  "test": "npm run build && vitest run --reporter=dot",
+  "test:watch": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bigbadmad/CharacterGenerator.git"
+  },
+  "author": "Matthew Allen - madtv.me.uk",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bigbadmad/CharacterGenerator/issues"
+  },
+  "homepage": "https://github.com/bigbadmad/CharacterGenerator#readme",
+  "devDependencies": {
+  "@types/jsdom": "^21.1.7",
+    "@types/yargs": "^17.0.33",
+  "jsdom": "^24.1.0",
+    "typescript": "^5.9.2",
+  "vitest": "^4.1.11"
+  }
+}
