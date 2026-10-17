@@ -1,9 +1,21 @@
 node_modules/
 dist/
+.vite/
+.vite-temp/
+*.tsbuildinfo
+coverage/
+.netlify/
+
+# Local environment
 .env
 .env.*
 !.env.example
 *.local
+
+# OS and editor
 .DS_Store
-.netlify/
-coverage/
+Thumbs.db
+.idea/
+*.suo
+*.sw?
+npm-debug.log*

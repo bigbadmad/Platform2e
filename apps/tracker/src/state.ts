@@ -1,0 +1,439 @@
+import type { AppState, Combatant, LootResult, SessionLoot } from './types.ts';
+import {
+  applyDeclaredAction,
+  calcInitiative,
+  canActThisRound,
+  firstActiveSegment,
+  maxInitiativeSegment,
+  rollD10,
+  type DeclaredKind,
+} from './combat.ts';
+import { generateLoot } from './data/loot.ts';
+
+function newId(): string {
+  return crypto.randomUUID().slice(0, 8);
+}
+
+// -- Initial state -------------------------------------------------------------
+
+function emptySession(): SessionLoot {
+  return { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0, gems: [], jewelry: [], magicItems: [], xp: 0 };
+}
+
+const initialState: AppState = {
+  phase: 'setup',
+  combatants: [],
+  roundNumber: 1,
+  currentSegment: 1,
+  inSurprisePhase: false,
+  pendingLoot: null,
+  sessionLoot: emptySession(),
+};
+
+// -- localStorage persistence --------------------------------------------------
+
+const STORAGE_KEY = 'adnd-tracker';
+
+function persistState(s: AppState): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+  } catch { /* quota exceeded or unavailable */ }
+}
+
+function loadPersistedState(): AppState {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return structuredClone(initialState);
+    const parsed = JSON.parse(raw) as Partial<AppState>;
+    if (!parsed.phase || !Array.isArray(parsed.combatants)) return structuredClone(initialState);
+    // Migrate: ensure fields added after initial release exist in old saves
+    const combatants: Combatant[] = parsed.combatants.map((c) => ({
+      ...c,
+      prevInitiative: c.prevInitiative ?? null,
+      isHorsDeCombat: (c.isHorsDeCombat as boolean | undefined) ?? false,
+      atRange: (c.atRange as boolean | undefined) ?? false,
+      targetId: (c.targetId as string | null | undefined) ?? null,
+    }));
+    return {
+      ...structuredClone(initialState),
+      ...parsed,
+      combatants,
+      pendingLoot: parsed.pendingLoot ?? null,
+      sessionLoot: (parsed.sessionLoot as SessionLoot | undefined) ?? emptySession(),
+      // A save made mid-encounter before encounter ids existed still needs one to accept remote declarations.
+      ...(parsed.phase !== 'setup' && !parsed.encounterId ? { encounterId: crypto.randomUUID() } : {}),
+    };
+  } catch {
+    return structuredClone(initialState);
+  }
+}
+
+// -- State singleton -----------------------------------------------------------
+
+let state: AppState = loadPersistedState();
+
+/**
+ * Why a render was requested. `remote` changes arrive from the network while the DM may be mid-edit,
+ * so the renderer is allowed to hold them back until the DM has stopped typing.
+ */
+export interface RenderRequest {
+  remote?: boolean;
+}
+
+/** Registered render callback - set by main.ts. */
+let onStateChange: ((req: RenderRequest) => void) | null = null;
+
+export function registerRenderer(fn: (req: RenderRequest) => void): void {
+  onStateChange = fn;
+}
+
+/** Called after every change, including silent ones that skip the re-render - set by main.ts to sync players. */
+let onPublish: (() => void) | null = null;
+
+export function registerPublisher(fn: (() => void) | null): void {
+  onPublish = fn;
+}
+
+function notify(req: RenderRequest = {}): void {
+  persistState(state);
+  onStateChange?.(req);
+  onPublish?.();
+}
+
+// -- Read ----------------------------------------------------------------------
+
+export function getState(): Readonly<AppState> {
+  return state;
+}
+
+// -- Mutations -----------------------------------------------------------------
+
+export function setState(patch: Partial<AppState>): void {
+  state = { ...state, ...patch };
+  notify();
+}
+
+export function addCombatant(combatant: Combatant): void {
+  state = { ...state, combatants: [...state.combatants, combatant] };
+  notify();
+}
+
+export function updateCombatant(id: string, patch: Partial<Combatant>): void {
+  state = {
+    ...state,
+    combatants: state.combatants.map((c) =>
+      c.id === id ? { ...c, ...patch } : c,
+    ),
+  };
+  notify();
+}
+
+/**
+ * Update a combatant without triggering a re-render.
+ * Use for transient edits (e.g. text fields mid-edit) where re-render would lose focus.
+ */
+export function updateCombatantSilent(id: string, patch: Partial<Combatant>): void {
+  state = {
+    ...state,
+    combatants: state.combatants.map((c) =>
+      c.id === id ? { ...c, ...patch } : c,
+    ),
+  };
+  persistState(state);
+  onPublish?.();
+}
+
+export function removeCombatant(id: string): void {
+  state = {
+    ...state,
+    combatants: state.combatants.filter((c) => c.id !== id),
+  };
+  notify();
+}
+
+/** Move a combatant from one position to another in the list. */
+export function reorderCombatants(fromIndex: number, toIndex: number): void {
+  const next = [...state.combatants];
+  const [moved] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, moved);
+  state = { ...state, combatants: next };
+  notify();
+}
+
+/** Apply damage to a monster/NPC. Deactivates if hp drops to 0 or below.
+ *  When all HP-tracked monsters/NPCs are defeated, automatically returns to
+ *  the setup screen with player combatants pre-loaded for the next encounter. */
+export function applyDamage(id: string, amount: number): void {
+  const combatant = state.combatants.find((c) => c.id === id);
+  if (!combatant || combatant.currentHp === null) return;
+
+  const newHp = combatant.currentHp - amount;
+  const newCombatants = state.combatants.map((c) =>
+    c.id === id
+      ? { ...c, currentHp: newHp, isActive: newHp > 0, targetId: newHp <= 0 ? null : c.targetId }
+      : c,
+  );
+
+  // Check if all HP-tracked monsters/NPCs are now defeated
+  const monstersWithHp = newCombatants.filter((c) => c.type !== 'player' && c.maxHp !== null);
+  if (monstersWithHp.length > 0 && monstersWithHp.every((c) => !c.isActive)) {
+    // All monsters defeated — generate loot and show the loot screen
+    const loot = generateLoot(monstersWithHp);
+    state = { ...state, combatants: newCombatants, phase: 'loot', pendingLoot: loot };
+  } else {
+    state = { ...state, combatants: newCombatants };
+  }
+  notify();
+}
+
+/** Apply healing to a monster/NPC. Won't exceed maxHp. */
+export function applyHealing(id: string, amount: number): void {
+  const combatant = state.combatants.find((c) => c.id === id);
+  if (!combatant || combatant.currentHp === null || combatant.maxHp === null)
+    return;
+
+  const newHp = Math.min(combatant.maxHp, combatant.currentHp + amount);
+  updateCombatant(id, { currentHp: newHp, isActive: true });
+}
+
+/** Replace the entire app state (used for JSON import). */
+export function importState(newState: AppState): void {
+  // Migrate: ensure fields added after initial release exist in imported files
+  const combatants: Combatant[] = newState.combatants.map((c) => ({
+    ...c,
+    prevInitiative: c.prevInitiative ?? null,
+    isHorsDeCombat: (c.isHorsDeCombat as boolean | undefined) ?? false,
+    atRange: (c.atRange as boolean | undefined) ?? false,
+    targetId: (c.targetId as string | null | undefined) ?? null,
+  }));
+  state = {
+    ...newState,
+    combatants,
+    ...(newState.phase !== 'setup' && !newState.encounterId ? { encounterId: crypto.randomUUID() } : {}),
+  };
+  notify();
+}
+
+// -- Internal helper ----------------------------------------------------------
+
+function withAutoRolledMonsters(combatants: Combatant[]): Combatant[] {
+  return combatants.map((c) => {
+    if (c.isActive && c.type !== 'player') {
+      const roll = rollD10();
+      const total = calcInitiative(roll, c.modifiers);
+      return { ...c, d10Roll: roll, totalInitiative: total };
+    }
+    return c;
+  });
+}
+
+/**
+ * Transition to the initiative phase, auto-rolling d10 for all monsters/NPCs.
+ * Surprise is detected automatically: if any active combatant is marked surprised,
+ * the first phase becomes a surprise round (1 segment) with roundNumber 0
+ * so that startNewRound() brings it to Round 1.
+ */
+export function beginInitiativePhase(): void {
+  const hasSurprise = state.combatants.some((c) => c.isActive && c.isSurprised);
+  state = {
+    ...state,
+    phase: 'initiative',
+    inSurprisePhase: hasSurprise,
+    roundNumber: hasSurprise ? 0 : 1,
+    combatants: withAutoRolledMonsters(state.combatants),
+    encounterId: crypto.randomUUID(),
+  };
+  notify();
+}
+
+export type LockResult =
+  | { ok: true }
+  | { ok: false; reason: 'phase' }
+  | { ok: false; reason: 'missing'; missing: string[] };
+
+/**
+ * Close the initiative phase and begin combat. Refuses (and changes nothing) outside the
+ * initiative phase - a late call must never reset a combat already under way - or while anyone who
+ * can act this round still has no roll. Combatants who sit the round out get the 99 sentinel.
+ */
+export function lockInitiative(): LockResult {
+  if (state.phase !== 'initiative') return { ok: false, reason: 'phase' };
+  const missing = state.combatants.filter(
+    (c) => canActThisRound(c, state.inSurprisePhase) && c.d10Roll === null,
+  );
+  if (missing.length > 0) return { ok: false, reason: 'missing', missing: missing.map((c) => c.name) };
+
+  const combatants = state.combatants.map((c) =>
+    c.isActive && (c.isHorsDeCombat || (c.isSurprised && state.inSurprisePhase))
+      ? { ...c, d10Roll: null, totalInitiative: 99 }
+      : c,
+  );
+  const maxSeg = maxInitiativeSegment(combatants);
+  const startSeg = firstActiveSegment(combatants, maxSeg, state.inSurprisePhase);
+  state = { ...state, phase: 'combat', currentSegment: startSeg, combatants };
+  notify();
+  return { ok: true };
+}
+
+/** The segment a batch of Done taps was fetched for. */
+export interface SegmentDoneTarget {
+  encounterId: string;
+  round: number;
+  segment: number;
+}
+
+/**
+ * Record which acting players have tapped Done. A batch for a segment the DM has already left is
+ * ignored, and an unchanged batch does nothing (so a poll that finds no news never re-renders).
+ * Returns whether the state changed.
+ */
+export function applySegmentDone(
+  target: SegmentDoneTarget,
+  result: { done: string[]; remote: string[] },
+): boolean {
+  if (
+    state.phase !== 'combat' ||
+    state.encounterId !== target.encounterId ||
+    state.roundNumber !== target.round ||
+    state.currentSegment !== target.segment
+  ) {
+    return false;
+  }
+  const done = [...new Set(result.done)].sort();
+  const remote = [...new Set(result.remote)].sort();
+  const prev = state.segmentDone;
+  const same =
+    prev !== undefined &&
+    prev.encounterId === target.encounterId &&
+    prev.round === target.round &&
+    prev.segment === target.segment &&
+    prev.done.join('|') === done.join('|') &&
+    prev.remote.join('|') === remote.join('|');
+  if (same) return false;
+
+  state = { ...state, segmentDone: { ...target, done, remote } };
+  notify({ remote: true });
+  return true;
+}
+
+/** A player's declaration as returned by the server: the action they chose and the d10 it rolled. */
+export interface RemoteDeclaration {
+  combatantId: string;
+  kind: DeclaredKind;
+  label: string;
+  value: number;
+  d10: number;
+}
+
+/**
+ * Merge declarations fetched from the server into the initiative round they were made for.
+ * Never overwrites a roll the DM already has (physical dice entered at the table win), and ignores
+ * a batch that no longer matches the encounter, round or phase - the DM may have moved on while
+ * the request was in flight. Returns the ids of the combatants that were updated.
+ */
+export function applyDeclarations(
+  encounterId: string,
+  round: number,
+  declarations: RemoteDeclaration[],
+): string[] {
+  if (state.phase !== 'initiative' || state.encounterId !== encounterId || state.roundNumber !== round) {
+    return [];
+  }
+  const byId = new Map(declarations.map((d) => [d.combatantId, d]));
+  const applied: string[] = [];
+
+  const combatants = state.combatants.map((c) => {
+    const d = byId.get(c.id);
+    if (!d || c.type !== 'player' || c.d10Roll !== null) return c;
+    if (!canActThisRound(c, state.inSurprisePhase)) return c;
+    if (!Number.isInteger(d.d10) || d.d10 < 1 || d.d10 > 10) return c;
+    const modifiers = applyDeclaredAction(c.modifiers, d, newId());
+    applied.push(c.id);
+    return {
+      ...c,
+      action: d.label.trim() || c.action,
+      modifiers,
+      d10Roll: d.d10,
+      totalInitiative: calcInitiative(d.d10, modifiers),
+    };
+  });
+
+  if (applied.length === 0) return [];
+  state = { ...state, combatants };
+  notify({ remote: true });
+  return applied;
+}
+
+/** Reset rolls for a new round, bump roundNumber, auto-roll monsters, return to initiative phase. */
+export function startNewRound(): void {
+  const cleared = state.combatants.map((c) => ({
+    ...c,
+    prevInitiative: c.totalInitiative, // preserve for history display in the new round
+    d10Roll: null,
+    totalInitiative: null,
+    isSurprised: false, // Surprised only applies to the surprise phase
+  }));
+  state = {
+    ...state,
+    phase: 'initiative',
+    roundNumber: state.roundNumber + 1,
+    currentSegment: 1,
+    inSurprisePhase: false,
+    combatants: withAutoRolledMonsters(cleared),
+  };
+  notify();
+}
+
+
+/**
+ * Save this encounter's loot + XP to the session running total, then return to
+ * setup with players pre-loaded.
+ * @param loot      The pending individual loot from the encounter.
+ * @param lairLoot  Any lair treasure rolls the DM made on the loot screen.
+ */
+export function saveAndContinueLoot(loot: LootResult, lairLoot: LootResult[] = []): void {
+  const all = [loot, ...lairLoot];
+  const prev = state.sessionLoot;
+
+  const players = state.combatants
+    .filter((c) => c.type === 'player')
+    .map((c) => ({ ...c, d10Roll: null, totalInitiative: null, prevInitiative: null, isSurprised: false, isHorsDeCombat: false, atRange: false, targetId: null, isActive: true, action: '' }));
+
+  state = {
+    ...initialState,
+    combatants: players,
+    sessionLoot: {
+      cp:          prev.cp + all.reduce((s, l) => s + l.cp, 0),
+      sp:          prev.sp + all.reduce((s, l) => s + l.sp, 0),
+      ep:          prev.ep + all.reduce((s, l) => s + l.ep, 0),
+      gp:          prev.gp + all.reduce((s, l) => s + l.gp, 0),
+      pp:          prev.pp + all.reduce((s, l) => s + l.pp, 0),
+      gems:        [...prev.gems,        ...all.flatMap((l) => l.gems)],
+      jewelry:     [...prev.jewelry,     ...all.flatMap((l) => l.jewelry)],
+      magicItems:  [...prev.magicItems,  ...all.flatMap((l) => l.magicItems)],
+      xp:          prev.xp + all.reduce((s, l) => s + l.xp, 0),
+    },
+  };
+  notify();
+}
+
+/** Reset session totals to zero. */
+export function clearSession(): void {
+  state = { ...state, sessionLoot: emptySession() };
+  notify();
+}
+
+/** Clear loot screen and return to setup with players pre-loaded. */
+export function continueLoot(): void {
+  const players = state.combatants
+    .filter((c) => c.type === 'player')
+    .map((c) => ({ ...c, d10Roll: null, totalInitiative: null, prevInitiative: null, isSurprised: false, isHorsDeCombat: false, atRange: false, targetId: null, isActive: true, action: '' }));
+  state = { ...initialState, combatants: players };
+  notify();
+}
+
+/** Full reset - back to setup with a blank slate. */
+export function resetEncounter(): void {
+  state = structuredClone(initialState);
+  notify();
+}

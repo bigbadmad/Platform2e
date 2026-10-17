@@ -1,0 +1,17 @@
+{
+  "name": "@platform2e/character",
+  "private": true,
+  "version": "1.0.0",
+  "description": "AD&D 2e Character Generator",
+  "type": "module",
+  "author": "Matthew Allen - madtv.me.uk",
+  "license": "ISC",
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  }
+}
