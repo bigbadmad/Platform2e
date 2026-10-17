@@ -1,5 +1,6 @@
-import { initAnalytics } from '@platform2e/analytics';
+import { configuredProvider, initAnalytics } from '@platform2e/analytics';
 import { el, mountPlatformBar, mount } from '@platform2e/ui';
+import { privacyNote } from './privacy.js';
 import './home.css';
 
 const TOOLS = [
@@ -62,13 +63,7 @@ footer.append(
     el('a', { text: 'Open an issue on GitHub', attrs: { href: ISSUES_URL, rel: 'noopener' } }),
     '.',
   ),
-  section(
-    'Privacy',
-    'Visits and tool use are counted with Umami, which records which pages and tools get used. It does not record names, ' +
-      'session codes or anything you type, and it respects Do Not Track and Global Privacy Control. Your characters, dungeons ' +
-      'and encounters stay in your browser. Online tracker sessions are the exception: what the DM shares with players, such as ' +
-      'names and initiative, goes to a server so everyone\'s devices can follow along.',
-  ),
+  section('Privacy', privacyNote(configuredProvider())),
   el('p', {
     cls: 'home__fine-print',
     text:

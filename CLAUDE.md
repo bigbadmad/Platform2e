@@ -35,7 +35,7 @@ One site: `netlify.toml` at the repo root runs `npm run build:site` and publishe
 - Dependencies shared by every app (typescript, vite, vitest, jsdom) live in the root `package.json`. App `package.json` files list only their own runtime dependencies.
 - Compiled output goes to each app's `dist/` and is never committed.
 - Packages are source-only: `exports` points at `src/index.ts` and Vite compiles them with the app. The game-logic packages (`dice`, `monsters`) must not touch the DOM or Supabase; their tsconfig leaves out the DOM lib so `window` fails the typecheck. `ui` and `analytics` use the DOM, and neither may touch Supabase.
-- The privacy note on the launcher (`apps/web/src/main.ts`) says what is collected. If you change what analytics or the tracker sends, update it.
+- The privacy note on the launcher (`apps/web/src/privacy.ts`) says what is collected and follows the analytics configuration of the build. If you change what analytics or the tracker sends, update it and its tests.
 - Platform chrome (nav bar, launcher) uses the `--p2e-*` tokens from `packages/ui`. Each tool keeps its own look inside its page; the tools do not share a theme.
 - Usage events are declared in `packages/analytics/src/events.ts` and sent with `track(name, props)`. Add the event there first. Never put a name, code, seed or anything typed by a user in a property, and send counts through `countBucket`.
 - All dice and random picks go through `@platform2e/dice`. Pass an `Rng` where a test or a seeded feature needs determinism. `Math.random()` is only for non-gameplay needs such as DOM ids.

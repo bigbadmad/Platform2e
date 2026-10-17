@@ -1,5 +1,5 @@
 import type { EventArgs, EventName, Prop } from './events.js';
-import { installProvider, type ProviderConfig, type ProviderName, type Sender } from './providers.js';
+import { installProvider, isConfigured, type ProviderConfig, type ProviderName, type Sender } from './providers.js';
 
 export { countBucket, type AnalyticsEvents, type CountBucket, type EventName } from './events.js';
 export type { ProviderConfig, ProviderName } from './providers.js';
@@ -15,8 +15,6 @@ export interface InitOptions {
   /** Keep the address's query string out of page views. Use it on a page whose address holds a secret. */
   excludeSearch?: boolean;
 }
-
-const PROVIDERS: readonly string[] = ['plausible', 'umami'];
 
 let sender: Sender | null = null;
 let debug = false;
@@ -68,15 +66,25 @@ export function initAnalytics(options: InitOptions = {}): boolean {
   if (isLocal() && !debug) return false;
 
   const config = { ...envConfig(), ...options.config, excludeSearch: options.excludeSearch };
-  const wanted = Boolean(config.provider || config.site);
-  if (!config.provider || !PROVIDERS.includes(config.provider) || !config.site) {
-    if (wanted) console.warn('[analytics] Not started: set both a provider (plausible or umami) and a site.');
+  if (!isConfigured(config)) {
+    if (config.provider || config.site) {
+      console.warn(
+        '[analytics] Not started: set a provider (plausible or umami) and a site, plus a script address (VITE_ANALYTICS_SRC) for Umami.',
+      );
+    }
     return debug;
   }
 
-  sender = installProvider(config as ProviderConfig);
-  if (!sender && wanted) console.warn(`[analytics] ${config.provider} needs a script address (VITE_ANALYTICS_SRC).`);
+  sender = installProvider(config);
   return sender !== null || debug;
+}
+
+/**
+ * Which provider this build is set up to use, or null if analytics is not configured. It says what the
+ * site is built to do, whatever an individual visitor's settings, so a privacy note can describe it.
+ */
+export function configuredProvider(config: Partial<ProviderConfig> = envConfig()): ProviderName | null {
+  return isConfigured(config) ? config.provider : null;
 }
 
 /** Record that something happened. Does nothing until initAnalytics has started a provider. */

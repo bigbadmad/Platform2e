@@ -180,6 +180,27 @@ describe('track', () => {
   });
 });
 
+describe('configuredProvider', () => {
+  it('is null when nothing is set', () => {
+    expect(mod.configuredProvider({})).toBeNull();
+  });
+
+  it('names the provider when it is usable', () => {
+    expect(mod.configuredProvider({ provider: 'plausible', site: 'example.com' })).toBe('plausible');
+    expect(mod.configuredProvider({ provider: 'umami', site: 'abc', src: 'https://u.example.org/script.js' })).toBe('umami');
+  });
+
+  it('is null for a half-finished setup', () => {
+    expect(mod.configuredProvider({ provider: 'plausible' })).toBeNull();
+    expect(mod.configuredProvider({ provider: 'umami', site: 'abc' })).toBeNull();
+    expect(mod.configuredProvider({ provider: 'nope' as never, site: 'abc', src: 'x' })).toBeNull();
+  });
+
+  it('reads the build settings by default, which are empty under test', () => {
+    expect(mod.configuredProvider()).toBeNull();
+  });
+});
+
 describe('countBucket', () => {
   it('groups counts', () => {
     expect([0, 1, 2, 3, 4, 6, 7, 10, 11, 40].map(mod.countBucket)).toEqual([
