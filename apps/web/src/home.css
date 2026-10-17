@@ -1,0 +1,76 @@
+html,
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--p2e-bg);
+  color: var(--p2e-text);
+  font-family: var(--p2e-font);
+  line-height: 1.5;
+}
+
+.home {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 16px 48px;
+}
+
+.home h1 {
+  margin: 0 0 8px;
+  color: var(--p2e-accent-bright);
+  font-size: 2rem;
+  letter-spacing: 0.04em;
+}
+
+.home__intro {
+  margin: 0 0 28px;
+  color: var(--p2e-text);
+  font-size: 1.1rem;
+}
+
+.home__tools {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tool-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 18px;
+  box-sizing: border-box;
+  background: var(--p2e-surface);
+  border: 1px solid var(--p2e-border);
+  border-radius: var(--p2e-radius);
+  color: var(--p2e-text);
+  text-decoration: none;
+}
+
+.tool-card:hover {
+  background: var(--p2e-surface-alt);
+  border-color: var(--p2e-accent);
+}
+
+.tool-card:focus-visible {
+  outline: 2px solid var(--p2e-accent);
+  outline-offset: 2px;
+}
+
+.tool-card__title {
+  margin: 0 0 8px;
+  color: var(--p2e-accent);
+  font-size: 1.25rem;
+}
+
+.tool-card__text {
+  flex: 1;
+  margin: 0 0 14px;
+}
+
+.tool-card__go {
+  color: var(--p2e-accent-bright);
+  font-weight: 700;
+}

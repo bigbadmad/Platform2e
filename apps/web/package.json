@@ -1,0 +1,16 @@
+{
+  "name": "@platform2e/web",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Launcher page for the Platform2e tools",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@platform2e/ui": "*"
+  }
+}

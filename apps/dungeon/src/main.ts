@@ -1,4 +1,5 @@
 import './style.css';
+import { mountPlatformBar } from '@platform2e/ui';
 import { getState, subscribe, saveToFile, loadFromJSON } from './state.js';
 import { initMap, renderMap, exportPNG } from './ui/map.js';
 import { initControls, renderControls, renderRollResults } from './ui/controls.js';
@@ -13,6 +14,7 @@ function render(): void {
 }
 
 function init(): void {
+  mountPlatformBar('dungeon');
   initMap();
   initControls();
 

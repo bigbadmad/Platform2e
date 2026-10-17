@@ -1,0 +1,14 @@
+/* Platform colour tokens. Prefixed so they never collide with an app's own variables. */
+:root {
+  --p2e-bg: #1a1510;
+  --p2e-surface: #241d14;
+  --p2e-surface-alt: #2c2318;
+  --p2e-border: #4a3a22;
+  --p2e-accent: #c8a45a;
+  --p2e-accent-bright: #e8c97a;
+  --p2e-text: #d4b896;
+  --p2e-text-muted: #a08766;
+  --p2e-text-bright: #f0ddb8;
+  --p2e-radius: 6px;
+  --p2e-font: Georgia, 'Times New Roman', serif;
+}
