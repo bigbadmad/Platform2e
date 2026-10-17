@@ -74,3 +74,37 @@ body {
   color: var(--p2e-accent-bright);
   font-weight: 700;
 }
+
+.home__footer {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--p2e-border);
+  font-size: 0.9rem;
+}
+
+.home__note {
+  margin-bottom: 16px;
+}
+
+.home__note-title {
+  margin: 0 0 4px;
+  color: var(--p2e-accent);
+  font-size: 1rem;
+}
+
+.home__note p,
+.home__fine-print {
+  margin: 0;
+  max-width: 70ch;
+  color: var(--p2e-text);
+}
+
+.home__footer a {
+  color: var(--p2e-accent-bright);
+}
+
+.home__fine-print {
+  margin-top: 8px;
+  color: var(--p2e-text-muted);
+  font-size: 0.85rem;
+}

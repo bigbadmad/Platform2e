@@ -15,6 +15,14 @@ export interface ProviderConfig {
   excludeSearch?: boolean;
 }
 
+const PROVIDER_NAMES: readonly string[] = ['plausible', 'umami'];
+
+/** True when the settings are enough to start a provider: a known one, a site, and a script for Umami. */
+export function isConfigured(config: Partial<ProviderConfig>): config is ProviderConfig {
+  if (!config.provider || !PROVIDER_NAMES.includes(config.provider) || !config.site) return false;
+  return config.provider !== 'umami' || Boolean(config.src);
+}
+
 export interface Sender {
   send(name: string, props?: Record<string, Prop>): void;
 }
