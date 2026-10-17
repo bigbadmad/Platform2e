@@ -1,8 +1,7 @@
 import type { Combatant, CombatantType, Modifier, ModifierKind } from '../types.ts';
 import type { AppState } from '../types.ts';
 import { openMonsterLibrary } from './library.ts';
-import type { MonsterTemplate } from '../data/monsters.ts';
-import { rollHD } from '../data/monsters.ts';
+import { rollHD, type MonsterTemplate } from '@platform2e/monsters';
 import { ENCOUNTER_TABLES, generateEncounter, rollEncounterHp } from '../data/encounters.ts';
 import { monsterXP } from '../data/loot.ts';
 import type { GeneratedEncounter } from '../data/encounters.ts';

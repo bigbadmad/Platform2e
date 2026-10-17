@@ -96,7 +96,7 @@ src/
 ├── combat.ts            # Pure initiative rules logic
 ├── styles.css           # All styles
 ├── data/
-│   ├── monsters.ts      # 100+ monster templates + rollHD()
+│   ├── (monsters)       # now in packages/monsters (@platform2e/monsters)
 │   ├── encounters.ts    # 14 terrain encounter tables + generator
 │   ├── loot.ts          # Treasure type tables (P–V, A–I) + generator
 │   └── magicItems.ts    # DMG magic item tables (10 categories)

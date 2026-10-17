@@ -13,6 +13,7 @@ Shared code lives in `packages/`:
 | Package | What it is |
 |---|---|
 | `@platform2e/dice` | `Rng` interface with a seedable generator and a crypto-backed one, dice rolling and weighted picks |
+| `@platform2e/monsters` | Monster library with stats and treasure types, `findMonster`, hit point rolling |
 
 Each app imported its full git history from its original repository
 (`CharacterGenerator`, `dungeongenerator`, `initiativetracker`).

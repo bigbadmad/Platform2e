@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@platform2e/dice": "*",
+    "@platform2e/monsters": "*",
     "@supabase/supabase-js": "^2.117.3"
   }
 }

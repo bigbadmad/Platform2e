@@ -4,8 +4,7 @@
 // Gem/jewelry tables are from the DMG gem and art object tables.
 
 import type { LootResult, XPEntry } from '../types.ts';
-import { MONSTERS } from './monsters.ts';
-import type { MonsterTemplate } from './monsters.ts';
+import { findMonster, type MonsterTemplate } from '@platform2e/monsters';
 import { rollMagicItem } from './magicItems.ts';
 import { defaultRng, rollDice, rollDie as d } from '@platform2e/dice';
 
@@ -492,9 +491,7 @@ export function generateLoot(
   // Roll individual treasure for each monster
   for (const m of defeated) {
     const baseName = stripNumber(m.name);
-    const template = MONSTERS.find(
-      (t) => t.name.toLowerCase() === baseName.toLowerCase(),
-    );
+    const template = findMonster(baseName);
 
     const individualExpr = template?.individual ?? m.individualTreasure;
     if (individualExpr && individualExpr !== 'none') {
@@ -515,7 +512,7 @@ export function generateLoot(
   const xpBreakdown: XPEntry[] = [];
   let monsterXPTotal = 0;
   for (const [name, count] of counts) {
-    const template = MONSTERS.find((t) => t.name.toLowerCase() === name.toLowerCase());
+    const template = findMonster(name);
     const sample = defeated.find((m) => stripNumber(m.name).toLowerCase() === name.toLowerCase());
     const xpEach = sample?.manualXP !== undefined ? sample.manualXP : (template ? monsterXP(template) : 0);
     const subtotal = xpEach * count;
