@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 
 // Import built JS to avoid TS import extension issues
-import { raceClassLimits, thac0s, savingThrows, heightWeightTable, startingAgeTable, startingMoneyTable, classAlignmentRestrictions, proficiencySlotData, spellSlotsPerDay, thiefBaseSkills, thiefRaceAdjustments, bardBaseSkills, rangerSkillsByLevel } from '../dist/data.js';
-import { Classes } from '../dist/types.js';
+import { raceClassLimits, thac0s, savingThrows, heightWeightTable, startingAgeTable, startingMoneyTable, classAlignmentRestrictions, proficiencySlotData, spellSlotsPerDay, thiefBaseSkills, thiefRaceAdjustments, bardBaseSkills, rangerSkillsByLevel } from '../src/data.js';
+import { Classes } from '../src/types.js';
 
 describe('data tables', () => {
   it('raceClassLimits includes expected classes', () => {

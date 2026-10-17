@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Import built JS to avoid TS extension resolution issues in tests
-import { rollDie, roll3d6, roll4d6DropLowest, rollXdY } from '../dist/dice.js';
+import { rollDie, roll3d6, roll4d6DropLowest, rollXdY } from '../src/dice.js';
 
 function setMockRandomSequence(seq: number[]) {
   let i = 0;

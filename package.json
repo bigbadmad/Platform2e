@@ -1,0 +1,27 @@
+{
+  "name": "platform2e",
+  "private": true,
+  "version": "0.1.0",
+  "description": "AD&D 2e tools for DMs: character generator, dungeon generator and initiative tracker",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:character": "npm run dev -w apps/character",
+    "dev:dungeon": "npm run dev -w apps/dungeon",
+    "dev:tracker": "npm run dev -w apps/tracker",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm test --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present"
+  },
+  "devDependencies": {
+    "jsdom": "^24.1.0",
+    "typescript": "^5.9.2",
+    "vite": "^6.3.5",
+    "vitest": "^4.1.12"
+  }
+}

@@ -1,19 +1,15 @@
 {
-  "name": "initiativetracker",
+  "name": "@platform2e/tracker",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
-  },
-  "devDependencies": {
-    "typescript": "^5.7.2",
-    "vite": "^6.3.5",
-    "vitest": "^3.2.2"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3"
