@@ -1,6 +1,7 @@
+import '@platform2e/ui/tokens.css';
 import './styles.css';
-import { initAnalytics } from '@platform2e/analytics';
-import { mountPlatformBar } from '@platform2e/ui';
+import { initAnalytics, track } from '@platform2e/analytics';
+import { mountPlatformBar, registerHelp, setHelpTopic } from '@platform2e/ui';
 import { registerRenderer, registerPublisher, getState, setState, startNewRound } from './state.ts';
 import { renderSetup } from './ui/setup.ts';
 import { renderInitiative } from './ui/initiative.ts';
@@ -10,14 +11,21 @@ import { mount } from './ui/components.ts';
 import { mountSessionBar, publishCurrent } from './ui/sessionBar.ts';
 import { dmIsMidEdit } from './ui/editing.ts';
 import { maxInitiativeSegment, nextActiveSegment } from './combat.ts';
+import { HELP } from './help.ts';
 
 initAnalytics();
+registerHelp({
+  topics: HELP,
+  initial: 'setup',
+  onOpen: (topic) => track('help_opened', { page: 'tracker', topic }),
+});
 mountPlatformBar('tracker');
 
 const appEl = document.getElementById('app')!;
 
 function renderApp(): void {
   const { phase } = getState();
+  setHelpTopic(phase);
   let screen: HTMLElement;
 
   switch (phase) {

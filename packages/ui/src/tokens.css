@@ -1,14 +1,74 @@
-/* Platform colour tokens. Prefixed so they never collide with an app's own variables. */
+/*
+ * Platform theme. Every tool uses these tokens, so the whole site looks like one thing.
+ * Prefixed so they never collide with an app's own variables.
+ */
 :root {
+  /* Surfaces */
   --p2e-bg: #1a1510;
   --p2e-surface: #241d14;
   --p2e-surface-alt: #2c2318;
+  --p2e-input-bg: #0f0c08;
+
+  /* Lines */
   --p2e-border: #4a3a22;
+  --p2e-border-strong: #6b5233;
+
+  /* Accent (amber) */
   --p2e-accent: #c8a45a;
   --p2e-accent-bright: #e8c97a;
+  --p2e-accent-dim: #8a6e3a;
+
+  /* Text */
   --p2e-text: #d4b896;
   --p2e-text-muted: #a08766;
   --p2e-text-bright: #f0ddb8;
+
+  /* Status */
+  --p2e-danger: #c0392b;
+  --p2e-danger-bright: #e74c3c;
+  --p2e-success: #27ae60;
+  --p2e-success-bright: #2ecc71;
+  --p2e-info: #2980b9;
+  --p2e-info-bright: #3498db;
+
+  /* Buttons */
+  --p2e-btn-bg: #2c2318;
+  --p2e-btn-hover-bg: #4a3a22;
+  --p2e-btn-primary-bg: #5a3d1a;
+  --p2e-btn-secondary-bg: #2a2218;
+
+  /* Shape and type */
   --p2e-radius: 6px;
+  --p2e-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+  --p2e-transition: 0.15s ease;
   --p2e-font: Georgia, 'Times New Roman', serif;
+  --p2e-font-mono: 'Courier New', Courier, monospace;
+}
+
+/* Printing swaps in a light palette so pages do not use a tray of ink. */
+@media print {
+  :root {
+    --p2e-bg: #ffffff;
+    --p2e-surface: #ffffff;
+    --p2e-surface-alt: #f3efe6;
+    --p2e-input-bg: #ffffff;
+    --p2e-border: #bdb4a3;
+    --p2e-border-strong: #8f8573;
+    --p2e-accent: #6b4a12;
+    --p2e-accent-bright: #4a3208;
+    --p2e-accent-dim: #8a6e3a;
+    --p2e-text: #1a1510;
+    --p2e-text-muted: #5c5242;
+    --p2e-text-bright: #000000;
+    --p2e-btn-bg: #f3efe6;
+    --p2e-btn-hover-bg: #e5dfd2;
+    --p2e-btn-primary-bg: #e5dfd2;
+    --p2e-btn-secondary-bg: #f3efe6;
+    --p2e-shadow: none;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--p2e-accent);
+  outline-offset: 2px;
 }

@@ -15,7 +15,7 @@ Shared code lives in `packages/`:
 |---|---|
 | `@platform2e/dice` | `Rng` interface with a seedable generator and a crypto-backed one, dice rolling and weighted picks |
 | `@platform2e/monsters` | Monster library with stats and treasure types, `findMonster`, hit point rolling |
-| `@platform2e/ui` | `el`/`btn`/`mount` DOM helpers, colour tokens and the navigation bar shown above every tool |
+| `@platform2e/ui` | `el`/`btn`/`mount` DOM helpers, the shared theme, and the navigation bar with its Help panel shown above every tool |
 | `@platform2e/analytics` | Typed usage events, sent only when a provider is configured |
 
 Each app imported its full git history from its original repository
@@ -76,6 +76,7 @@ The provider records page views for each tool (the launcher, `/character/`, `/du
 | `character_exported` | A sheet is exported | `class`, `race` |
 | `dungeon_generated` | A dungeon is generated | `mode` (`full` or `step`), `size`, `level` |
 | `dungeon_saved`, `dungeon_loaded`, `dungeon_exported_png` | Save, load, PNG export | none |
+| `help_opened` | The Help panel is opened | `page`, `topic` |
 | `tracker_encounter_started` | Start Encounter | `players`, `monsters` (count groups such as `2-3`) |
 | `tracker_random_encounter` | A random encounter is generated | `terrain` |
 | `tracker_session_started` | A DM starts an online session | none |

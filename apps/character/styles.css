@@ -2,19 +2,19 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg:             #110a04;
-  --parchment:      #f8edd6;
-  --parchment-mid:  #f0ddb4;
-  --parchment-edge: #c9a468;
-  --card-shadow:    0 4px 20px rgba(0,0,0,0.6);
-  --accent:         #7a1e0e;
-  --gold:           #a8832a;
-  --gold-light:     #c9a825;
-  --text:           #2e1a0c;
-  --text-muted:     #7a5c3a;
-  --title-bg:       #5c2a10;
-  --title-fg:       #f8e5b4;
-  --radius:         6px;
+  --bg:             var(--p2e-bg);
+  --parchment:      var(--p2e-surface);
+  --parchment-mid:  var(--p2e-surface-alt);
+  --parchment-edge: var(--p2e-border);
+  --card-shadow:    var(--p2e-shadow);
+  --accent:         var(--p2e-accent-bright);
+  --gold:           var(--p2e-accent);
+  --gold-light:     var(--p2e-accent-bright);
+  --text:           var(--p2e-text);
+  --text-muted:     var(--p2e-text-muted);
+  --title-bg:       var(--p2e-surface-alt);
+  --title-fg:       var(--p2e-accent);
+  --radius:         var(--p2e-radius);
   --builder-width:  430px;
 }
 
@@ -22,11 +22,8 @@ html { font-size: 15px; }
 
 body {
   background-color: var(--bg);
-  background-image:
-    radial-gradient(ellipse at 15% 15%, #2a1208 0%, transparent 55%),
-    radial-gradient(ellipse at 85% 85%, #1a0c02 0%, transparent 55%);
   color: var(--text);
-  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-family: var(--p2e-font);
   min-height: 100vh;
 }
 
@@ -56,33 +53,17 @@ body {
 
 /* -- Header --------------------------------------------------- */
 .site-header {
-  background: linear-gradient(135deg, #1c0902 0%, #3d1608 50%, #1c0902 100%);
-  border-bottom: 3px solid var(--gold);
-  padding: 1.25rem 4rem;
-  text-align: center;
-  position: relative;
+  background: var(--p2e-surface);
+  border-bottom: 1px solid var(--p2e-border);
+  padding: 0.9rem 1.5rem;
 }
-
-.site-header::before,
-.site-header::after {
-  content: '⚔';
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 1.5rem;
-  color: var(--gold);
-  opacity: 0.65;
-}
-.site-header::before { left: 1.5rem; }
-.site-header::after  { right: 1.5rem; }
 
 .site-header h1 {
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 1.75rem;
+  font-family: var(--p2e-font);
+  font-size: 1.5rem;
   font-weight: 700;
-  color: var(--gold-light);
-  text-shadow: 0 2px 10px rgba(0,0,0,0.9), 0 0 40px rgba(200,160,40,0.25);
-  letter-spacing: 0.04em;
+  color: var(--p2e-accent-bright);
+  letter-spacing: 0.05em;
   line-height: 1.4;
 }
 
@@ -91,11 +72,10 @@ body {
 }
 
 .site-header h1 span {
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 400;
-  color: #ddc890;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  color: var(--p2e-text);
+  letter-spacing: 0.05em;
 }
 
 /* -- Page Layout ---------------------------------------------- */
@@ -121,20 +101,18 @@ body {
   background: var(--parchment);
   border: 1px solid var(--parchment-edge);
   border-radius: var(--radius);
-  box-shadow: var(--card-shadow), inset 0 0 0 1px rgba(255,255,255,0.35);
+  box-shadow: var(--card-shadow);
   overflow: hidden;
 }
 
 .card-title {
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 0.85rem;
+  font-family: var(--p2e-font);
+  font-size: 1.05rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--title-fg);
-  background: linear-gradient(135deg, var(--title-bg), #884018);
-  padding: 0.5rem 1rem;
-  border-bottom: 2px solid var(--gold);
+  color: var(--p2e-accent);
+  background: var(--p2e-surface-alt);
+  padding: 0.55rem 1rem;
+  border-bottom: 1px solid var(--p2e-border);
 }
 
 /* -- Radio Group ---------------------------------------------- */
@@ -175,15 +153,14 @@ body {
   color: var(--text-muted);
   font-size: 0.7rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.02em;
   padding: 0.4rem 0.65rem;
   border-bottom: 1px solid var(--parchment-edge);
   text-align: left;
 }
 
 .score-table tbody tr {
-  border-bottom: 1px solid #e8d8b8;
+  border-bottom: 1px solid var(--p2e-border);
 }
 
 .score-table tbody tr:last-child {
@@ -191,7 +168,7 @@ body {
 }
 
 .score-table tbody tr:nth-child(even) {
-  background: rgba(0,0,0,0.025);
+  background: rgba(255,255,255,0.03);
 }
 
 .score-table td {
@@ -205,7 +182,7 @@ body {
   padding: 0.22rem 0.3rem;
   border: 1px solid var(--parchment-edge);
   border-radius: 3px;
-  background: #fff9ef;
+  background: var(--p2e-input-bg);
   color: var(--text);
   font-size: 0.92rem;
   font-weight: 700;
@@ -222,7 +199,7 @@ body {
   padding: 0.22rem 0.3rem;
   border: 1px solid var(--parchment-edge);
   border-radius: 3px;
-  background: #fff9ef;
+  background: var(--p2e-input-bg);
   color: var(--text);
   cursor: pointer;
 }
@@ -270,30 +247,26 @@ body {
 
 .roll-btn {
   width: 100%;
-  padding: 0.6rem 1.2rem;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 1rem;
+  padding: 0.65rem 1.2rem;
+  font-family: var(--p2e-font);
+  font-size: 1.05rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
-  color: var(--title-fg);
-  background: linear-gradient(180deg, #a8361c 0%, #7a1e0e 100%);
-  border: 2px solid #c0561c;
-  border-radius: 4px;
+  letter-spacing: 0.03em;
+  color: var(--p2e-accent-bright);
+  background: var(--p2e-btn-primary-bg);
+  border: 1px solid var(--p2e-accent-dim);
+  border-radius: var(--p2e-radius);
   cursor: pointer;
-  transition: all 0.12s ease;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.55);
-  box-shadow: 0 3px 10px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.15);
+  transition: background var(--p2e-transition), color var(--p2e-transition);
 }
 
 .roll-btn:hover {
-  background: linear-gradient(180deg, #c04020 0%, #8b2412 100%);
-  box-shadow: 0 5px 14px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.2);
-  transform: translateY(-1px);
+  background: var(--p2e-accent-dim);
+  color: var(--p2e-bg);
 }
 
 .roll-btn:active {
   transform: translateY(1px);
-  box-shadow: 0 1px 5px rgba(0,0,0,0.4);
 }
 
 .roll-btn:disabled {
@@ -322,8 +295,7 @@ body {
   color: var(--text-muted);
   width: 60px;
   flex-shrink: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.02em;
 }
 
 .field-row select {
@@ -331,7 +303,7 @@ body {
   padding: 0.28rem 0.4rem;
   border: 1px solid var(--parchment-edge);
   border-radius: 3px;
-  background: #fff9ef;
+  background: var(--p2e-input-bg);
   color: var(--text);
   font-size: 0.9rem;
   cursor: pointer;
@@ -341,7 +313,7 @@ body {
   flex: 1;
   border: 1px solid var(--parchment-edge);
   border-radius: 3px;
-  background: #fff9ef;
+  background: var(--p2e-input-bg);
   color: var(--text);
   font-size: 0.88rem;
 }
@@ -369,8 +341,7 @@ body {
 .derived-label {
   font-size: 0.68rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.02em;
   color: var(--text-muted);
 }
 
@@ -397,7 +368,7 @@ body {
   background: var(--parchment);
   border: 1px solid var(--parchment-edge);
   border-radius: var(--radius);
-  box-shadow: var(--card-shadow), inset 0 0 0 1px rgba(255,255,255,0.35);
+  box-shadow: var(--card-shadow);
   overflow: hidden;
 }
 
@@ -406,15 +377,13 @@ body {
 }
 
 .stat-card-title {
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 0.82rem;
+  font-family: var(--p2e-font);
+  font-size: 1rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--title-fg);
-  background: linear-gradient(135deg, var(--title-bg), #884018);
-  padding: 0.45rem 0.9rem;
-  border-bottom: 2px solid var(--gold);
+  color: var(--p2e-accent);
+  background: var(--p2e-surface-alt);
+  padding: 0.5rem 0.9rem;
+  border-bottom: 1px solid var(--p2e-border);
 }
 
 /* -- Definition List ------------------------------------------ */
@@ -427,8 +396,8 @@ body {
   font-size: 0.78rem;
   color: var(--text-muted);
   padding: 0.3rem 0.75rem 0.3rem 0.9rem;
-  border-right: 1px solid #e0ccaa;
-  border-bottom: 1px solid #eeddb8;
+  border-right: 1px solid var(--p2e-border);
+  border-bottom: 1px solid var(--p2e-border);
   white-space: nowrap;
   display: flex;
   align-items: center;
@@ -439,7 +408,7 @@ body {
   font-weight: 700;
   color: var(--text);
   padding: 0.3rem 0.9rem;
-  border-bottom: 1px solid #eeddb8;
+  border-bottom: 1px solid var(--p2e-border);
   display: flex;
   align-items: center;
   min-height: 1.75rem;
@@ -465,28 +434,24 @@ body {
 .export-btn {
   width: 100%;
   padding: 0.5rem 1.2rem;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 0.9rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--gold);
-  background: transparent;
-  border: 2px solid var(--gold);
-  border-radius: 4px;
+  font-family: var(--p2e-font);
+  font-size: 0.95rem;
+  color: var(--p2e-text);
+  background: var(--p2e-btn-secondary-bg);
+  border: 1px solid var(--p2e-border-strong);
+  border-radius: var(--p2e-radius);
   cursor: pointer;
-  transition: all 0.12s ease;
+  transition: background var(--p2e-transition), border-color var(--p2e-transition), color var(--p2e-transition);
 }
 
 .export-btn:hover {
-  background: var(--gold);
-  color: #1c0902;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.35);
-  transform: translateY(-1px);
+  background: var(--p2e-btn-hover-bg);
+  border-color: var(--p2e-accent);
+  color: var(--p2e-text-bright);
 }
 
 .export-btn:active {
   transform: translateY(1px);
-  box-shadow: none;
 }
 
 /* -- Responsive ----------------------------------------------- */
@@ -556,8 +521,7 @@ body {
   color: var(--text-muted);
   font-size: 0.68rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.02em;
   padding: 0.3rem 0.6rem;
   border-bottom: 1px solid var(--parchment-edge);
   text-align: left;
@@ -565,7 +529,7 @@ body {
 
 .thief-table td {
   padding: 0.28rem 0.6rem;
-  border-bottom: 1px solid #e8d8b8;
+  border-bottom: 1px solid var(--p2e-border);
   vertical-align: middle;
   color: var(--text);
 }
@@ -575,7 +539,7 @@ body {
 }
 
 .thief-table tr:nth-child(even) td {
-  background: rgba(0,0,0,0.025);
+  background: rgba(255,255,255,0.03);
 }
 
 .thief-add {
@@ -583,7 +547,7 @@ body {
   padding: 0.18rem 0.25rem;
   border: 1px solid var(--parchment-edge);
   border-radius: 3px;
-  background: #fff9ef;
+  background: var(--p2e-input-bg);
   color: var(--text);
   font-size: 0.82rem;
   text-align: center;
@@ -597,8 +561,7 @@ body {
 .spell-class-header {
   font-weight: 700;
   font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.02em;
   color: var(--gold);
   padding-top: 0.5rem;
 }

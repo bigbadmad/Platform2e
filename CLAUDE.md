@@ -10,7 +10,7 @@ Monorepo of three vanilla TypeScript + Vite apps for AD&D 2e DMs. No UI framewor
 - `apps/web` launcher page for the whole site
 - `packages/dice` `@platform2e/dice`: `Rng` interface, `SeededRng`, `CryptoRng`, dice helpers
 - `packages/monsters` `@platform2e/monsters`: monster library, `findMonster`, `rollHD`
-- `packages/ui` `@platform2e/ui`: `el`/`btn`/`mount` DOM helpers, colour tokens and the platform nav bar
+- `packages/ui` `@platform2e/ui`: `el`/`btn`/`mount` DOM helpers, the shared theme tokens, the platform nav bar and its context-sensitive Help panel
 - `packages/analytics` `@platform2e/analytics`: `initAnalytics()` and a typed `track()`
 - `tsconfig.base.json` shared compiler options, extended by each app and package
 
@@ -36,7 +36,8 @@ One site: `netlify.toml` at the repo root runs `npm run build:site` and publishe
 - Compiled output goes to each app's `dist/` and is never committed.
 - Packages are source-only: `exports` points at `src/index.ts` and Vite compiles them with the app. The game-logic packages (`dice`, `monsters`) must not touch the DOM or Supabase; their tsconfig leaves out the DOM lib so `window` fails the typecheck. `ui` and `analytics` use the DOM, and neither may touch Supabase.
 - The privacy note on the launcher (`apps/web/src/privacy.ts`) says what is collected and follows the analytics configuration of the build. If you change what analytics or the tracker sends, update it and its tests.
-- Platform chrome (nav bar, launcher) uses the `--p2e-*` tokens from `packages/ui`. Each tool keeps its own look inside its page; the tools do not share a theme.
+- All tools share one theme. Colours, fonts and the look of buttons and inputs come from the `--p2e-*` tokens in `packages/ui/src/tokens.css`. Change a colour there, not in an app, and use the tokens in any new CSS. The one exception is the dungeon map, which is drawn as a light paper map and keeps its own colours so the PNG export stays the same. The tracker's older variable names (`--amber`, `--bg-card` and so on) are aliases for the tokens.
+- Every page registers help with `registerHelp` (from `packages/ui`), with its text in the app's `src/help.ts`. Topics are written only from behaviour you have checked in the code. The tracker's topic keys are its phases and `main.ts` switches topic with the phase, so a new phase needs a help topic (a test enforces it). Help is plain text, never markup.
 - Usage events are declared in `packages/analytics/src/events.ts` and sent with `track(name, props)`. Add the event there first. Never put a name, code, seed or anything typed by a user in a property, and send counts through `countBucket`.
 - All dice and random picks go through `@platform2e/dice`. Pass an `Rng` where a test or a seeded feature needs determinism. `Math.random()` is only for non-gameplay needs such as DOM ids.
 - `.npmrc` has `legacy-peer-deps=true` on purpose. See README.

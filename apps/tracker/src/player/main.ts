@@ -1,3 +1,4 @@
+import '@platform2e/ui/tokens.css';
 import '../styles.css';
 import { initAnalytics } from '@platform2e/analytics';
 import type { PublicView } from '../sync/publicView.ts';

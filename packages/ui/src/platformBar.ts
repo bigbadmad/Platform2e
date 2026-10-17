@@ -1,4 +1,5 @@
 import { el } from './dom.js';
+import { attachHelp } from './help.js';
 import './tokens.css';
 import './platformBar.css';
 
@@ -34,5 +35,6 @@ export function mountPlatformBar(current: PlatformApp): HTMLElement {
   }
 
   document.body.prepend(bar);
+  attachHelp(bar);
   return bar;
 }

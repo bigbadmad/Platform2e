@@ -1,6 +1,7 @@
-import { initAnalytics } from '@platform2e/analytics';
-import { mountPlatformBar } from '@platform2e/ui';
+import { initAnalytics, track } from '@platform2e/analytics';
+import { mountPlatformBar, registerHelp } from '@platform2e/ui';
 import { Generator } from './generator.js';
+import { HELP } from './help.js';
 
 declare global {
   interface Window {
@@ -21,6 +22,11 @@ declare global {
 
 window.addEventListener('load', () => {
   initAnalytics();
+  registerHelp({
+    topics: HELP,
+    initial: 'character',
+    onOpen: (topic) => track('help_opened', { page: 'character', topic }),
+  });
   mountPlatformBar('character');
 
   const roll = document.getElementById('roll') as HTMLInputElement | null;

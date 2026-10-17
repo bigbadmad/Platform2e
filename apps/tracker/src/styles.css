@@ -2,28 +2,29 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg:          #1a1510;
-  --bg-card:     #241d14;
-  --bg-card-alt: #2c2318;
-  --bg-input:    #0f0c08;
-  --border:      #4a3a22;
-  --border-light:#6b5233;
-  --amber:       #c8a45a;
-  --amber-light: #e8c97a;
-  --amber-dim:   #8a6e3a;
-  --red:         #c0392b;
-  --red-light:   #e74c3c;
-  --green:       #27ae60;
-  --green-light: #2ecc71;
-  --blue:        #2980b9;
-  --blue-light:  #3498db;
+  /* The palette lives in the shared theme (packages/ui tokens.css). These names are this app's aliases. */
+  --bg:          var(--p2e-bg);
+  --bg-card:     var(--p2e-surface);
+  --bg-card-alt: var(--p2e-surface-alt);
+  --bg-input:    var(--p2e-input-bg);
+  --border:      var(--p2e-border);
+  --border-light:var(--p2e-border-strong);
+  --amber:       var(--p2e-accent);
+  --amber-light: var(--p2e-accent-bright);
+  --amber-dim:   var(--p2e-accent-dim);
+  --red:         var(--p2e-danger);
+  --red-light:   var(--p2e-danger-bright);
+  --green:       var(--p2e-success);
+  --green-light: var(--p2e-success-bright);
+  --blue:        var(--p2e-info);
+  --blue-light:  var(--p2e-info-bright);
   --purple:      #8e44ad;
-  --text:        #d4b896;
-  --text-muted:  #8a7055;
-  --text-bright: #f0ddb8;
-  --radius:      6px;
-  --shadow:      0 2px 12px rgba(0,0,0,0.6);
-  --transition:  0.15s ease;
+  --text:        var(--p2e-text);
+  --text-muted:  var(--p2e-text-muted);
+  --text-bright: var(--p2e-text-bright);
+  --radius:      var(--p2e-radius);
+  --shadow:      var(--p2e-shadow);
+  --transition:  var(--p2e-transition);
 }
 
 html, body {
