@@ -5,6 +5,7 @@
 
 import { MONSTERS, rollHD } from './monsters.ts';
 import type { MonsterTemplate } from './monsters.ts';
+import { pickWeighted, rollDice } from '@platform2e/dice';
 
 // -- Types --------------------------------------------------------------------
 
@@ -42,9 +43,7 @@ export function rollCount(expr: string): number {
     const num = parseInt(m[1], 10);
     const sides = parseInt(m[2], 10);
     const mod = m[3] ? parseInt(m[3], 10) : 0;
-    let total = 0;
-    for (let i = 0; i < num; i++) total += Math.floor(Math.random() * sides) + 1;
-    return Math.max(1, total + mod);
+    return Math.max(1, rollDice(num, sides) + mod);
   }
   return 1;
 }
@@ -53,13 +52,7 @@ export function rollCount(expr: string): number {
 
 function weightedRandom(entries: EncounterEntry[]): EncounterEntry | null {
   if (entries.length === 0) return null;
-  const total = entries.reduce((s, e) => s + e.weight, 0);
-  let r = Math.random() * total;
-  for (const entry of entries) {
-    r -= entry.weight;
-    if (r <= 0) return entry;
-  }
-  return entries[entries.length - 1];
+  return pickWeighted(entries, (e) => e.weight);
 }
 
 // -- Generator ----------------------------------------------------------------

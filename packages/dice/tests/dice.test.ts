@@ -1,22 +1,16 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-// Import built JS to avoid TS extension resolution issues in tests
-import { rollDie, roll3d6, roll4d6DropLowest, rollXdY } from '../src/dice.js';
+import { rollDie, rollDice, roll3d6, roll4d6DropLowest } from '../src/index.js';
 
 function setMockRandomSequence(seq: number[]) {
   let i = 0;
-  const c = (globalThis as any).crypto;
-  if (!c || typeof c.getRandomValues !== 'function') {
-    throw new Error('crypto.getRandomValues is not available in test environment');
-  }
-  vi.spyOn(c as any, 'getRandomValues').mockImplementation((arr: ArrayBufferView) => {
-    const v = seq[i++ % seq.length] >>> 0;
-    (arr as any)[0] = v;
+  vi.spyOn(globalThis.crypto, 'getRandomValues').mockImplementation(((arr: Uint32Array) => {
+    arr[0] = seq[i++ % seq.length] >>> 0;
     return arr;
-  });
+  }) as typeof globalThis.crypto.getRandomValues);
 }
 
-describe('dice', () => {
+describe('dice (crypto-backed)', () => {
   beforeEach(() => {
     // default deterministic value
     setMockRandomSequence([0]);
@@ -53,19 +47,19 @@ describe('dice', () => {
     expect(rollDie(6)).toBe(3);
   });
 
-  it('rollXdY returns 0 when x is 0', () => {
+  it('rollDice returns 0 when x is 0', () => {
     // No dice rolled; crypto should never be called.
-    expect(rollXdY(0, 6)).toBe(0);
+    expect(rollDice(0, 6)).toBe(0);
   });
 
-  it('rollXdY sums exactly x rolls of y-sided die', () => {
+  it('rollDice sums exactly x rolls of y-sided die', () => {
     // Values 0,1,2 → rollDie(6) = 1,2,3 → sum = 6 for x=3
     setMockRandomSequence([0, 1, 2]);
-    expect(rollXdY(3, 6)).toBe(6);
+    expect(rollDice(3, 6)).toBe(6);
   });
 
-  it('rollXdY with x=1 equals a single rollDie(y)', () => {
+  it('rollDice with x=1 equals a single rollDie(y)', () => {
     setMockRandomSequence([4]); // 4 % 8 + 1 = 5
-    expect(rollXdY(1, 8)).toBe(5);
+    expect(rollDice(1, 8)).toBe(5);
   });
 });

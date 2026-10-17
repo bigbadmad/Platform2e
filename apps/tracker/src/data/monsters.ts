@@ -1,6 +1,8 @@
 // AD&D 2e Monstrous Manual reference data for the monster picker.
 // Stats are taken from the 2e Monstrous Manual (1993).
 // hp = typical (near-average) HP for a single standard specimen.
+import { defaultRng, rollDice } from '@platform2e/dice';
+
 
 export type MonsterTag =
   | 'humanoid'
@@ -44,7 +46,7 @@ export function rollHD(hd: string): number {
     if (range) {
       const lo = parseInt(range[1], 10);
       const hi = parseInt(range[2], 10);
-      return lo + Math.floor(Math.random() * (hi - lo + 1));
+      return defaultRng.int(lo, hi);
     }
     const fixed = s.match(/(\d+)\s*hp/);
     return fixed ? parseInt(fixed[1], 10) : 1;
@@ -72,9 +74,7 @@ export function rollHD(hd: string): number {
 }
 
 function rollN(n: number, sides: number, mod: number): number {
-  let total = 0;
-  for (let i = 0; i < n; i++) total += Math.floor(Math.random() * sides) + 1;
-  return Math.max(1, total + mod);
+  return Math.max(1, rollDice(n, sides) + mod);
 }
 
 export const ALL_TAGS: MonsterTag[] = [

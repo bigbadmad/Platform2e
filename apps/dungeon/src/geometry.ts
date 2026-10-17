@@ -1,5 +1,5 @@
 import type { Direction, GridPos, GridRect, Room, Corridor } from './types.js';
-import { Rng } from './rng.js';
+import type { Rng } from '@platform2e/dice';
 import type { IrregularVariant, RoomShape } from './types.js';
 
 // ── Direction helpers ───────────────────────────────────────────────────────

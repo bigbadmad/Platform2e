@@ -1,4 +1,5 @@
 ﻿import type { AppState, Combatant, Modifier, SegmentDone } from './types.ts';
+import { rollDie } from '@platform2e/dice';
 
 // -- Initiative calculation ----------------------------------------------------
 
@@ -54,7 +55,7 @@ export function calcInitiative(d10: number, modifiers: Modifier[]): number {
  * Roll a random d10 (1–10).
  */
 export function rollD10(): number {
-  return Math.floor(Math.random() * 10) + 1;
+  return rollDie(10);
 }
 
 /**

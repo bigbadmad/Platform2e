@@ -7,7 +7,7 @@ import {
   generateAll,
   roomTarget,
 } from '../generator.js';
-import { hashSeed, randomSeed } from '../rng.js';
+import { hashSeed, randomSeed } from '@platform2e/dice';
 import { fitView } from './map.js';
 
 function readSettings() {

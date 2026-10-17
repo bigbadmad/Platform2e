@@ -77,7 +77,7 @@ export const heightWeightTable: HeightWeightTable = {
 };
 
 // PHB Table 1A - Starting Age by Race and Class
-// Starting age = base + rollXdY(dice, sides)
+// Starting age = base + rollDice(dice, sides)
 export const startingAgeTable: AgeTable = {
   human: {
     fighter:     { base: 15, dice: 1, sides: 4 },
@@ -127,7 +127,7 @@ export const startingAgeTable: AgeTable = {
 };
 
 // PHB Table 23 - Starting Money by Class
-// Starting gold = rollXdY(dice, sides) * multiplier
+// Starting gold = rollDice(dice, sides) * multiplier
 export const startingMoneyTable: StartingMoneyTable = {
   fighter:     { dice: 5, sides: 4, multiplier: 10 },
   paladin:     { dice: 5, sides: 4, multiplier: 10 },

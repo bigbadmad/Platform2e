@@ -27,36 +27,7 @@ import {
   roomContentsTable,
 } from '../tables.js';
 import { monsterTable, treasureTable, describeMonsters, describeTreasure, SPECIAL_FEATURE, TRAP_DETAIL } from '../content.js';
-import { Rng, hashSeed } from '../rng.js';
-
-describe('Rng', () => {
-  it('is reproducible from a seed', () => {
-    const a = new Rng(123);
-    const b = new Rng(123);
-    for (let i = 0; i < 50; i++) expect(a.next()).toBe(b.next());
-  });
-
-  it('int stays within bounds and reaches both ends', () => {
-    const rng = new Rng(7);
-    const seen = new Set<number>();
-    for (let i = 0; i < 500; i++) {
-      const v = rng.int(1, 6);
-      expect(v).toBeGreaterThanOrEqual(1);
-      expect(v).toBeLessThanOrEqual(6);
-      seen.add(v);
-    }
-    expect(seen.size).toBe(6);
-  });
-
-  it('shuffle keeps every item', () => {
-    expect(new Rng(1).shuffle([1, 2, 3, 4, 5]).sort()).toEqual([1, 2, 3, 4, 5]);
-  });
-
-  it('hashSeed is stable and spreads inputs', () => {
-    expect(hashSeed('dragon')).toBe(hashSeed('dragon'));
-    expect(hashSeed('dragon')).not.toBe(hashSeed('dragons'));
-  });
-});
+import { SeededRng } from '@platform2e/dice';
 
 describe('dice and tables', () => {
   it('a die maps onto the band that contains it', () => {
@@ -78,7 +49,7 @@ describe('dice and tables', () => {
   });
 
   it('rolls roughly according to the weights', () => {
-    const rng = new Rng(2024);
+    const rng = new SeededRng(2024);
     const counts: Record<string, number> = {};
     const n = 10000;
     for (let i = 0; i < n; i++) {
@@ -163,12 +134,12 @@ describe('monsters and treasure', () => {
   });
 
   it('describes a group with a count', () => {
-    expect(describeMonsters('Goblin', new Rng(3))).toMatch(/^\d+ Goblins?$/);
-    expect(describeMonsters('Vampire', new Rng(3))).toBe('1 Vampire');
+    expect(describeMonsters('Goblin', new SeededRng(3))).toMatch(/^\d+ Goblins?$/);
+    expect(describeMonsters('Vampire', new SeededRng(3))).toBe('1 Vampire');
   });
 
   it('treasure always reads as something', () => {
-    const rng = new Rng(8);
+    const rng = new SeededRng(8);
     for (let level = 1; level <= 10; level++) {
       for (const e of treasureTable(level)) expect(describeTreasure(e.value, level, rng).length).toBeGreaterThan(0);
     }

@@ -1,23 +1,15 @@
 // AD&D 2e magic item tables — DMG Appendix B / Table 88.
 // Weights reflect relative frequencies from the source tables.
 // (C) after a name = cursed item.
+import { defaultRng, pickWeighted, rollDie as d } from '@platform2e/dice';
+
 
 // -- Helpers ------------------------------------------------------------------
-
-function d(sides: number): number {
-  return Math.floor(Math.random() * sides) + 1;
-}
 
 type WEntry<T> = { w: number; v: T };
 
 function wpick<T>(entries: WEntry<T>[]): T {
-  const total = entries.reduce((s, e) => s + e.w, 0);
-  let r = Math.random() * total;
-  for (const e of entries) {
-    r -= e.w;
-    if (r <= 0) return e.v;
-  }
-  return entries[entries.length - 1].v;
+  return pickWeighted(entries, (e) => e.w).v;
 }
 
 function pickStr(entries: Array<{ w: number; v: string }>): string {
@@ -384,7 +376,7 @@ function miscMagic(): string {
     { w: 3,  v: 'Periapt of Health' },
     // Necklaces
     { w: 3,  v: 'Necklace of Fireballs' },
-    { w: 3,  v: PRAYER_BEADS[Math.floor(Math.random() * PRAYER_BEADS.length)] },
+    { w: 3,  v: defaultRng.pick(PRAYER_BEADS) },
     { w: 2,  v: 'Necklace of Adaptation' },
     { w: 2,  v: 'Necklace of Strangulation (C)' },
     // Belts & girdles
@@ -396,7 +388,7 @@ function miscMagic(): string {
     { w: 2,  v: 'Eyes of Petrification (C)' },
     { w: 2,  v: 'Gem of Seeing' },
     { w: 2,  v: 'Gem of Brightness' },
-    { w: 3,  v: `Ioun Stone — ${IOUN_STONES[Math.floor(Math.random() * IOUN_STONES.length)]}` },
+    { w: 3,  v: `Ioun Stone — ${defaultRng.pick(IOUN_STONES)}` },
     // Ropes & movement
     { w: 4,  v: 'Rope of Climbing' },
     { w: 2,  v: 'Rope of Entanglement' },
@@ -420,7 +412,7 @@ function miscMagic(): string {
     { w: 2,  v: 'Dust of Disappearance' },
     { w: 1,  v: 'Dust of Sneezing and Choking (C)' },
     // Figurines & special
-    { w: 2,  v: `Figurine of Wondrous Power — ${FIGURINES[Math.floor(Math.random() * FIGURINES.length)]}` },
+    { w: 2,  v: `Figurine of Wondrous Power — ${defaultRng.pick(FIGURINES)}` },
     { w: 2,  v: 'Efreeti Bottle' },
     { w: 2,  v: 'Iron Flask' },
     { w: 2,  v: 'Decanter of Endless Water' },

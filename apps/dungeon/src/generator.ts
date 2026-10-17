@@ -19,7 +19,7 @@ import type {
   StairType,
   TurnType,
 } from './types.js';
-import { Rng, randomSeed } from './rng.js';
+import { SeededRng, randomSeed } from '@platform2e/dice';
 import {
   rollTable,
   PERIODIC_CHECK,
@@ -130,7 +130,7 @@ export function createInitialState(
 // mutated while the step runs, and folded back into a new state at the end.
 
 interface Ctx {
-  rng: Rng;
+  rng: SeededRng;
   settings: DungeonSettings;
   seed: number;
   step: number;
@@ -146,7 +146,7 @@ interface Ctx {
 
 function makeCtx(state: DungeonState, step: number): Ctx {
   return {
-    rng: new Rng(state.rngState),
+    rng: new SeededRng(state.rngState),
     settings: state.settings,
     seed: state.seed,
     step,

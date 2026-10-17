@@ -1,4 +1,4 @@
-import { Rng } from './rng.js';
+import type { Rng } from '@platform2e/dice';
 import type {
   PeriodicCheckResult,
   TurnType,

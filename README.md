@@ -8,6 +8,12 @@ AD&D 2nd Edition tools for DMs, in one monorepo.
 | Dungeon generator | `apps/dungeon` | Seeded random dungeon maps from the classic random dungeon tables |
 | Initiative tracker | `apps/tracker` | Encounter, initiative, combat and loot tool, with optional online play via Supabase |
 
+Shared code lives in `packages/`:
+
+| Package | What it is |
+|---|---|
+| `@platform2e/dice` | `Rng` interface with a seedable generator and a crypto-backed one, dice rolling and weighted picks |
+
 Each app imported its full git history from its original repository
 (`CharacterGenerator`, `dungeongenerator`, `initiativetracker`).
 
