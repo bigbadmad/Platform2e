@@ -100,9 +100,10 @@ localStorage key: `'adnd-tracker'`. Migration in `loadPersistedState` adds missi
 base = d10 + weapon_speed + spell_casting + other_mods + dex_reaction
 if hasHaste:  base = max(1, floor(base / 2))
 if hasSlow:   base += 10
+total = max(1, base)
 ```
 
-Lower total acts first. Ties = simultaneous. Surprised combatants get sentinel 99 (excluded from all segments). HdC combatants also get sentinel 99 and are excluded.
+Segments start at 1, so a total of 0 or less would never come up. Lower total acts first. Ties = simultaneous. Surprised combatants get sentinel 99 (excluded from all segments). HdC combatants also get sentinel 99 and are excluded.
 
 ## Combatant Fields (key ones)
 

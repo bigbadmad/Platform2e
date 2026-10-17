@@ -79,6 +79,11 @@ describe('calcInitiative', () => {
     expect(calcInitiative(1, [mod('haste', 0)])).toBe(1); // max(1, floor(1/2)=0) = 1
   });
 
+  it('enforces minimum 1 when speed and dex push the total to 0 or below', () => {
+    expect(calcInitiative(1, [mod('weapon_speed', 1), mod('dex_reaction', -2)])).toBe(1); // raw total 0
+    expect(calcInitiative(1, [mod('dex_reaction', -3)])).toBe(1); // raw total -2
+  });
+
   it('adds 10 with slow', () => {
     expect(calcInitiative(5, [mod('slow', 0)])).toBe(15);
   });

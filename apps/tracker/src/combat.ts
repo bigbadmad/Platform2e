@@ -10,6 +10,7 @@
  *   dex_reaction bonus is SUBTRACTED (higher Dex = acts sooner)
  *   haste: halves base (round down, minimum 1)
  *   slow:  adds 10
+ *   the final total is never lower than 1
  *
  * Lower result = acts first.
  */
@@ -45,7 +46,8 @@ export function calcInitiative(d10: number, modifiers: Modifier[]): number {
     total += 10;
   }
 
-  return total;
+  // Segments start at 1, so a total of 0 or less would never come up in the segment bar.
+  return Math.max(1, total);
 }
 
 /**

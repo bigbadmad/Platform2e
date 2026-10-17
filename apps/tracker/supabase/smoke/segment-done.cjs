@@ -7,7 +7,8 @@
 const fs = require('fs');
 const path = require('path');
 const root = path.join(__dirname, '..', '..');
-const { createClient } = require(path.join(root, 'node_modules', '@supabase', 'supabase-js'));
+// By package name so Node also searches ancestor node_modules (npm workspaces hoist it to the repo root).
+const { createClient } = require('@supabase/supabase-js');
 
 const env = Object.fromEntries(
   fs.readFileSync(path.join(root, '.env.local'), 'utf8')
