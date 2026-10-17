@@ -1,0 +1,15 @@
+{
+  "name": "@platform2e/analytics",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Privacy-friendly usage analytics: typed events, sent only when a provider is configured",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  }
+}

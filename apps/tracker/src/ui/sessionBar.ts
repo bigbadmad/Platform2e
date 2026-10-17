@@ -16,6 +16,7 @@ import { applyDeclarations, applySegmentDone, getState, lockInitiative, type Seg
 import { el, btn, iconBtn } from './components.ts';
 import { dmIsMidEdit } from './editing.ts';
 import { playerLink } from './playerLink.ts';
+import { track } from '@platform2e/analytics';
 
 const AUTOLOCK_KEY = 'adnd-tracker-autolock';
 
@@ -111,6 +112,7 @@ async function start(): Promise<void> {
   renderBar();
   try {
     dmSession = await startDmSession();
+    track('tracker_session_started');
     message = '';
     syncStatus = { state: 'ok' };
     beginPolling();

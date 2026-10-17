@@ -11,6 +11,7 @@ Monorepo of three vanilla TypeScript + Vite apps for AD&D 2e DMs. No UI framewor
 - `packages/dice` `@platform2e/dice`: `Rng` interface, `SeededRng`, `CryptoRng`, dice helpers
 - `packages/monsters` `@platform2e/monsters`: monster library, `findMonster`, `rollHD`
 - `packages/ui` `@platform2e/ui`: `el`/`btn`/`mount` DOM helpers, colour tokens and the platform nav bar
+- `packages/analytics` `@platform2e/analytics`: `initAnalytics()` and a typed `track()`
 - `tsconfig.base.json` shared compiler options, extended by each app and package
 
 ## Commands
@@ -26,15 +27,16 @@ CI (`.github/workflows/ci.yml`) runs typecheck, test and build on Node 22.
 
 ## Hosting
 
-One site: `netlify.toml` at the repo root runs `npm run build:site` and publishes `site/`. The tracker's online play needs `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` set on that site. Every app builds with `base: './'`, so it works from any sub-path, and links between tools are relative. Add a new tool by giving it a `dist/`, listing it in `scripts/build-site.mjs`, and adding it to `PLATFORM_LINKS` in `packages/ui`.
+One site: `netlify.toml` at the repo root runs `npm run build:site` and publishes `site/`. The tracker's online play needs `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` set on that site. Analytics is off unless `VITE_ANALYTICS_PROVIDER` and `VITE_ANALYTICS_SITE` are set (see README). Every app builds with `base: './'`, so it works from any sub-path, and links between tools are relative. Add a new tool by giving it a `dist/`, listing it in `scripts/build-site.mjs`, and adding it to `PLATFORM_LINKS` in `packages/ui`.
 
 ## Conventions
 
 - ES modules throughout. Relative imports use `.js` extensions in the character and dungeon apps and `.ts` extensions in the tracker. Match the surrounding app.
 - Dependencies shared by every app (typescript, vite, vitest, jsdom) live in the root `package.json`. App `package.json` files list only their own runtime dependencies.
 - Compiled output goes to each app's `dist/` and is never committed.
-- Packages are source-only: `exports` points at `src/index.ts` and Vite compiles them with the app. The game-logic packages (`dice`, `monsters`) must not touch the DOM or Supabase; their tsconfig leaves out the DOM lib so `window` fails the typecheck. `ui` is the one package that uses the DOM and CSS, and it must not touch Supabase.
+- Packages are source-only: `exports` points at `src/index.ts` and Vite compiles them with the app. The game-logic packages (`dice`, `monsters`) must not touch the DOM or Supabase; their tsconfig leaves out the DOM lib so `window` fails the typecheck. `ui` and `analytics` use the DOM, and neither may touch Supabase.
 - Platform chrome (nav bar, launcher) uses the `--p2e-*` tokens from `packages/ui`. Each tool keeps its own look inside its page; the tools do not share a theme.
+- Usage events are declared in `packages/analytics/src/events.ts` and sent with `track(name, props)`. Add the event there first. Never put a name, code, seed or anything typed by a user in a property, and send counts through `countBucket`.
 - All dice and random picks go through `@platform2e/dice`. Pass an `Rng` where a test or a seeded feature needs determinism. `Math.random()` is only for non-gameplay needs such as DOM ids.
 - `.npmrc` has `legacy-peer-deps=true` on purpose. See README.
 

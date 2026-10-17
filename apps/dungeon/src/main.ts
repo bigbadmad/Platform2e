@@ -1,4 +1,5 @@
 import './style.css';
+import { initAnalytics, track } from '@platform2e/analytics';
 import { mountPlatformBar } from '@platform2e/ui';
 import { getState, subscribe, saveToFile, loadFromJSON } from './state.js';
 import { initMap, renderMap, exportPNG } from './ui/map.js';
@@ -14,12 +15,16 @@ function render(): void {
 }
 
 function init(): void {
+  initAnalytics();
   mountPlatformBar('dungeon');
   initMap();
   initControls();
 
   // Save / Load / Export
-  document.getElementById('btn-save')!.addEventListener('click', saveToFile);
+  document.getElementById('btn-save')!.addEventListener('click', () => {
+    saveToFile();
+    track('dungeon_saved');
+  });
 
   const fileInput = document.getElementById('file-input') as HTMLInputElement;
   document.getElementById('btn-load')!.addEventListener('click', () => fileInput.click());
@@ -31,12 +36,16 @@ function init(): void {
       const text = e.target?.result as string;
       const result = loadFromJSON(text);
       if (!result.ok) alert(`Failed to load dungeon file. ${result.reason}`);
+      else track('dungeon_loaded');
       fileInput.value = '';
     };
     reader.readAsText(file);
   });
 
-  document.getElementById('btn-export-png')!.addEventListener('click', exportPNG);
+  document.getElementById('btn-export-png')!.addEventListener('click', () => {
+    exportPNG();
+    track('dungeon_exported_png');
+  });
 
   subscribe(render);
   render();

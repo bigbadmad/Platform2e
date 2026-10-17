@@ -12,6 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@platform2e/analytics": "*",
     "@platform2e/dice": "*",
     "@platform2e/monsters": "*",
     "@platform2e/ui": "*",

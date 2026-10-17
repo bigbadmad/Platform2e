@@ -1,6 +1,7 @@
 import type { Combatant, CombatantType, Modifier, ModifierKind } from '../types.ts';
 import type { AppState } from '../types.ts';
 import { openMonsterLibrary } from './library.ts';
+import { countBucket, track } from '@platform2e/analytics';
 import { rollHD, type MonsterTemplate } from '@platform2e/monsters';
 import { ENCOUNTER_TABLES, generateEncounter, rollEncounterHp } from '../data/encounters.ts';
 import { monsterXP } from '../data/loot.ts';
@@ -105,6 +106,11 @@ export function renderSetup(): HTMLElement {
       return;
     }
     beginInitiativePhase();
+    const players = combatants.filter((c) => c.type === 'player').length;
+    track('tracker_encounter_started', {
+      players: countBucket(players),
+      monsters: countBucket(combatants.length - players),
+    });
   });
   body.appendChild(startBtn);
 
@@ -148,6 +154,7 @@ function buildEncounterGenerator(onAdd: () => void): HTMLElement {
     const result = generateEncounter(terrainSelect.value);
     encounterTerrainId = terrainSelect.value;
     renderResult(result);
+    track('tracker_random_encounter', { terrain: terrainSelect.value });
   });
   controls.appendChild(generateBtn);
 
@@ -221,6 +228,7 @@ function buildEncounterGenerator(onAdd: () => void): HTMLElement {
       iconBtn('fa-solid fa-rotate-right', 'Reroll', 'btn btn-secondary', () => {
         const rerolled = generateEncounter(terrainSelect.value);
         renderResult(rerolled);
+        track('tracker_random_encounter', { terrain: terrainSelect.value });
       }),
     );
 
@@ -335,6 +343,7 @@ function buildExportImportToolbar(): HTMLElement {
       a.download = 'encounter.json';
       a.click();
       URL.revokeObjectURL(url);
+      track('tracker_exported');
     }),
   );
 
@@ -356,6 +365,7 @@ function buildExportImportToolbar(): HTMLElement {
           return;
         }
         importState(parsed);
+        track('tracker_imported');
       } catch {
         alert('Could not read encounter file.');
       }

@@ -1,3 +1,4 @@
+import { initAnalytics } from '@platform2e/analytics';
 import { el, mountPlatformBar, mount } from '@platform2e/ui';
 import './home.css';
 
@@ -19,6 +20,7 @@ const TOOLS = [
   },
 ];
 
+initAnalytics();
 mountPlatformBar('home');
 
 const page = el('div', { cls: 'home' });

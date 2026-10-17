@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@platform2e/analytics": "*",
     "@platform2e/ui": "*"
   }
 }
