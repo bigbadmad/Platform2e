@@ -15,6 +15,7 @@ import { startSegmentDonePolling } from '../sync/segmentDone.ts';
 import { applyDeclarations, applySegmentDone, getState, lockInitiative, type SegmentDoneTarget } from '../state.ts';
 import { el, btn, iconBtn } from './components.ts';
 import { dmIsMidEdit } from './editing.ts';
+import { playerLink } from './playerLink.ts';
 
 const AUTOLOCK_KEY = 'adnd-tracker-autolock';
 
@@ -101,10 +102,6 @@ export function publishCurrent(): void {
   if ((state.phase === 'initiative' || state.phase === 'combat') && state.encounterId) {
     queueTotals(dmSession, { encounterId: state.encounterId, round: state.roundNumber }, toPlayerTotals(state));
   }
-}
-
-function playerLink(code: string): string {
-  return `${location.origin}/play.html?code=${code}`;
 }
 
 async function start(): Promise<void> {
