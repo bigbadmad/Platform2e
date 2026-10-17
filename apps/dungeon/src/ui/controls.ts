@@ -7,6 +7,7 @@ import {
   generateAll,
   roomTarget,
 } from '../generator.js';
+import { track } from '@platform2e/analytics';
 import { hashSeed, randomSeed } from '@platform2e/dice';
 import { fitView } from './map.js';
 
@@ -31,11 +32,13 @@ export function initControls(): void {
   btnGenerateAll.addEventListener('click', () => {
     const { settings, seed } = readSettings();
     setState(() => generateAll(generateStart(createInitialState(settings, seed))));
+    track('dungeon_generated', { mode: 'full', size: settings.size, level: settings.level });
   });
 
   btnStart.addEventListener('click', () => {
     const { settings, seed } = readSettings();
     setState(() => generateStart(createInitialState(settings, seed)));
+    track('dungeon_generated', { mode: 'step', size: settings.size, level: settings.level });
   });
 
   btnNext.addEventListener('click', () => setState(s => generateNext(s)));

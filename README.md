@@ -16,6 +16,7 @@ Shared code lives in `packages/`:
 | `@platform2e/dice` | `Rng` interface with a seedable generator and a crypto-backed one, dice rolling and weighted picks |
 | `@platform2e/monsters` | Monster library with stats and treasure types, `findMonster`, hit point rolling |
 | `@platform2e/ui` | `el`/`btn`/`mount` DOM helpers, colour tokens and the navigation bar shown above every tool |
+| `@platform2e/analytics` | Typed usage events, sent only when a provider is configured |
 
 Each app imported its full git history from its original repository
 (`CharacterGenerator`, `dungeongenerator`, `initiativetracker`).
@@ -47,7 +48,40 @@ Use `-w apps/<name>` to target one app, for example `npm test -w apps/dungeon`.
 
 The whole platform is one site (see `netlify.toml`): the launcher at `/` and the tools at `/character/`, `/dungeon/` and `/tracker/`. Players join a tracker session at `/tracker/play.html?code=…`.
 
-The tools were previously separate sites. Moving them over keeps the old addresses working by leaving each old site up and adding a redirect to the new path (Netlify normally passes the query string through, but test a real `play.html?code=…` join link before relying on it).
+The tools were previously separate sites, and those keep running untouched. The platform site holds its own built copy of each tool and does not link to the old ones. If you later want the old addresses to forward here, add redirects on the old sites (Netlify normally passes the query string through, but test a real `play.html?code=…` join link first). Anything saved in a browser (an encounter in progress, a saved dungeon) belongs to one address, so move it with the tracker's Export/Import and the dungeon's Save/Load.
+
+## Analytics
+
+Usage numbers come from a privacy-friendly provider (Plausible or Umami). Nothing is sent, and no provider script is added to any page, unless you configure one.
+
+**Turn it on** by setting these on the Netlify site, then redeploying (Vite bakes them in at build time):
+
+| Variable | Value |
+|---|---|
+| `VITE_ANALYTICS_PROVIDER` | `plausible` or `umami` |
+| `VITE_ANALYTICS_SITE` | Plausible: your site's domain. Umami: the website id |
+| `VITE_ANALYTICS_SRC` | Script address. Optional for Plausible (defaults to `https://plausible.io/js/script.js`, set it for a self-hosted install). Required for Umami |
+
+The provider records page views for each tool (the launcher, `/character/`, `/dungeon/`, `/tracker/` and `/tracker/play.html`) and where visitors came from. Add `?utm_source=…` to links you share, for example one per Facebook group, to see which group sends people.
+
+**Events** (defined in `packages/analytics/src/events.ts`):
+
+| Event | Sent when | Properties |
+|---|---|---|
+| `character_rolled` | Ability scores are rolled | `method`: `4d6` or `3d6` |
+| `character_exported` | A sheet is exported | `class`, `race` |
+| `dungeon_generated` | A dungeon is generated | `mode` (`full` or `step`), `size`, `level` |
+| `dungeon_saved`, `dungeon_loaded`, `dungeon_exported_png` | Save, load, PNG export | none |
+| `tracker_encounter_started` | Start Encounter | `players`, `monsters` (count groups such as `2-3`) |
+| `tracker_random_encounter` | A random encounter is generated | `terrain` |
+| `tracker_session_started` | A DM starts an online session | none |
+| `tracker_exported`, `tracker_imported` | Encounter export, import | none |
+
+No names, session codes, seeds or anything a person typed is ever sent. Plausible only shows a custom property in its dashboard after you add it in the site's settings.
+
+**Who is left out:** anyone with Do Not Track or Global Privacy Control on, anyone on localhost, and any browser where you run `localStorage.setItem('p2e-no-analytics', '1')` in the console (do this on your own devices so your testing does not count).
+
+**Checking it works:** build with `VITE_ANALYTICS_DEBUG=1` to log every event to the browser console, with or without a provider. After the first deploy, click around and look for the events in the provider's dashboard.
 
 ## Notes
 

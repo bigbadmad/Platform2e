@@ -1,3 +1,4 @@
+import { initAnalytics } from '@platform2e/analytics';
 import { mountPlatformBar } from '@platform2e/ui';
 import { Generator } from './generator.js';
 
@@ -19,6 +20,7 @@ declare global {
 }
 
 window.addEventListener('load', () => {
+  initAnalytics();
   mountPlatformBar('character');
 
   const roll = document.getElementById('roll') as HTMLInputElement | null;

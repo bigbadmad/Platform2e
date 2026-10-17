@@ -1,4 +1,5 @@
 import '../styles.css';
+import { initAnalytics } from '@platform2e/analytics';
 import type { PublicView } from '../sync/publicView.ts';
 import { syncAvailable } from '../sync/supabase.ts';
 import {
@@ -27,6 +28,8 @@ import {
 } from './declare.ts';
 import { ROSTER_POLL_MS, rosterKey } from './roster.ts';
 import { actStatus, actStatusKey, doneErrorMessage, type ActStatus, type LocalDone } from './act.ts';
+
+initAnalytics();
 
 const appEl = document.getElementById('app')!;
 const SAVED_KEY = 'adnd-tracker-player';

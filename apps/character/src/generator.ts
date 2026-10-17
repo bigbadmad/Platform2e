@@ -1,6 +1,7 @@
 import { Classes, Races, Alignment, THAC0S, Gender } from './types.js';
 import { raceClassLimits, thac0s, savingThrows, heightWeightTable, startingAgeTable, startingMoneyTable, classAlignmentRestrictions, proficiencySlotData, spellSlotsPerDay, thiefBaseSkills, thiefRaceAdjustments, bardBaseSkills, rangerSkillsByLevel } from './data.js';
 import { comboToLabel, getEligibleMulticlassCombos, meetsClassMinimums, AbilityScores } from './multiclass.js';
+import { track } from '@platform2e/analytics';
 import { rollDie, rollDice, roll3d6, roll4d6DropLowest } from '@platform2e/dice';
 import { exportCharacterSheet } from './exporter.js';
 import { calcStrMods, calcDexMods, calcConMods, calcIntMods, calcWisMods, calcChrMods } from './statCalc.js';
@@ -325,6 +326,7 @@ export class Generator {
       this.inputFive.value = roll4d6DropLowest().toString();
       this.inputSix.value = roll4d6DropLowest().toString();
       this.spinnerOff();
+      track('character_rolled', { method: '4d6' });
     } else if (this.rollType[1].checked) {
       this.inputOne.value = roll3d6().toString();
       this.inputTwo.value = roll3d6().toString();
@@ -333,6 +335,7 @@ export class Generator {
       this.inputFive.value = roll3d6().toString();
       this.inputSix.value = roll3d6().toString();
       this.spinnerOff();
+      track('character_rolled', { method: '3d6' });
     }
   };
 
@@ -1272,5 +1275,9 @@ export class Generator {
     if (this.rangerHisDisplay) this.rangerHisDisplay.textContent = `${his}%`;
   };
 
-  exportSheet = () => exportCharacterSheet(this.getCharacterData());
+  exportSheet = () => {
+    const data = this.getCharacterData();
+    exportCharacterSheet(data);
+    track('character_exported', { class: data.className || 'none', race: data.race || 'none' });
+  };
 }
