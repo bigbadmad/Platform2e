@@ -1,7 +1,7 @@
 import { Classes, Races, Alignment, THAC0S, Gender } from './types.js';
 import { raceClassLimits, thac0s, savingThrows, heightWeightTable, startingAgeTable, startingMoneyTable, classAlignmentRestrictions, proficiencySlotData, spellSlotsPerDay, thiefBaseSkills, thiefRaceAdjustments, bardBaseSkills, rangerSkillsByLevel } from './data.js';
 import { comboToLabel, getEligibleMulticlassCombos, meetsClassMinimums, AbilityScores } from './multiclass.js';
-import { rollDie, roll3d6, roll4d6DropLowest, rollXdY } from './dice.js';
+import { rollDie, rollDice, roll3d6, roll4d6DropLowest } from '@platform2e/dice';
 import { exportCharacterSheet } from './exporter.js';
 import { calcStrMods, calcDexMods, calcConMods, calcIntMods, calcWisMods, calcChrMods } from './statCalc.js';
 
@@ -639,9 +639,9 @@ export class Generator {
     if (!raceKey || !this.gender) { this.clearPhysical(); return; }
     const entry = heightWeightTable[raceKey]?.[this.gender];
     if (!entry) { this.clearPhysical(); return; }
-    const totalInches = entry.htBase + rollXdY(entry.htDice, entry.htSides);
+    const totalInches = entry.htBase + rollDice(entry.htDice, entry.htSides);
     this.height = `${Math.floor(totalInches / 12)}'${totalInches % 12}"`;
-    this.weight = entry.wtBase + rollXdY(entry.wtDice, entry.wtSides);
+    this.weight = entry.wtBase + rollDice(entry.wtDice, entry.wtSides);
     if (this.labelHeight) this.labelHeight.textContent = this.height;
     if (this.labelWeight) this.labelWeight.textContent = `${this.weight} lbs`;
   };
@@ -664,7 +664,7 @@ export class Generator {
     for (const cls of classes) {
       const entry = raceAges[cls];
       if (!entry) continue;
-      const rolled = entry.base + rollXdY(entry.dice, entry.sides);
+      const rolled = entry.base + rollDice(entry.dice, entry.sides);
       if (rolled > maxAge) maxAge = rolled;
     }
     if (!maxAge) { this.baseAge = 0; this.age = 0; if (this.labelAge) this.labelAge.textContent = ''; return; }
@@ -680,7 +680,7 @@ export class Generator {
     for (const cls of classes) {
       const entry = startingMoneyTable[cls];
       if (!entry) continue;
-      const rolled = rollXdY(entry.dice, entry.sides) * entry.multiplier;
+      const rolled = rollDice(entry.dice, entry.sides) * entry.multiplier;
       if (rolled > maxGold) maxGold = rolled;
     }
     if (!maxGold) { this.baseGold = 0; this.startingGold = 0; if (this.labelGold) this.labelGold.textContent = ''; return; }

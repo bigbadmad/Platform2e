@@ -1,0 +1,15 @@
+{
+  "name": "@platform2e/dice",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Random number sources and dice rolling shared by the Platform2e apps",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tests",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  }
+}

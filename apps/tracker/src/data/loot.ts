@@ -7,21 +7,16 @@ import type { LootResult, XPEntry } from '../types.ts';
 import { MONSTERS } from './monsters.ts';
 import type { MonsterTemplate } from './monsters.ts';
 import { rollMagicItem } from './magicItems.ts';
+import { defaultRng, rollDice, rollDie as d } from '@platform2e/dice';
 
 // -- Dice helpers -------------------------------------------------------------
 
-function d(sides: number): number {
-  return Math.floor(Math.random() * sides) + 1;
-}
-
 function roll(num: number, sides: number, bonus = 0): number {
-  let t = 0;
-  for (let i = 0; i < num; i++) t += d(sides);
-  return Math.max(0, t + bonus);
+  return Math.max(0, rollDice(num, sides) + bonus);
 }
 
 function pct(chance: number): boolean {
-  return Math.random() * 100 < chance;
+  return defaultRng.next() * 100 < chance;
 }
 
 // -- Gem tables (DMG, base values) -------------------------------------------
@@ -107,7 +102,7 @@ export function randomJewelry(): string {
 }
 
 function pick<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
+  return defaultRng.pick(arr);
 }
 
 // -- Partial loot accumulator -------------------------------------------------

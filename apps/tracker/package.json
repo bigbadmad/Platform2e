@@ -12,6 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@platform2e/dice": "*",
     "@supabase/supabase-js": "^2.117.3"
   }
 }
