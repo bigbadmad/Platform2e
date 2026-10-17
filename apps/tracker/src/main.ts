@@ -68,6 +68,7 @@ publishCurrent();
 // -- Keyboard navigation (combat phase only) -----------------------------------
 // Space or → advances to the next segment; when the round is over, starts the next round.
 // Ignored when focus is inside any text input so typing is never intercepted.
+// Space is also ignored on a focused button or link so keyboard users can still activate it; → always works.
 
 document.addEventListener('keydown', (e: KeyboardEvent) => {
   const { phase, combatants, currentSegment, inSurprisePhase } = getState();
@@ -79,6 +80,8 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     target.tagName === 'TEXTAREA' ||
     target.tagName === 'SELECT'
   ) return;
+
+  if (e.key === ' ' && target.closest('button, a, [role="button"]')) return;
 
   if (e.key === ' ' || e.key === 'ArrowRight') {
     e.preventDefault();
