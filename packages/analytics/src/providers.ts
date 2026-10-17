@@ -8,6 +8,11 @@ export interface ProviderConfig {
   site: string;
   /** Script address. Defaults to Plausible's hosted script. Required for Umami. */
   src?: string;
+  /**
+   * Leave the address's query string out of page views (Umami). For pages whose address holds
+   * something private, such as a session join code.
+   */
+  excludeSearch?: boolean;
 }
 
 export interface Sender {
@@ -16,11 +21,11 @@ export interface Sender {
 
 const PLAUSIBLE_SRC = 'https://plausible.io/js/script.js';
 
-function addScript(src: string, attr: string, value: string, onLoad?: () => void): void {
+function addScript(src: string, attrs: Record<string, string>, onLoad?: () => void): void {
   const script = document.createElement('script');
   script.defer = true;
   script.src = src;
-  script.setAttribute(attr, value);
+  for (const [name, value] of Object.entries(attrs)) script.setAttribute(name, value);
   if (onLoad) script.addEventListener('load', onLoad);
   document.head.append(script);
 }
@@ -36,7 +41,7 @@ function plausible(config: ProviderConfig): Sender {
     } as PlausibleFn;
     w.plausible = stub;
   }
-  addScript(config.src ?? PLAUSIBLE_SRC, 'data-domain', config.site);
+  addScript(config.src ?? PLAUSIBLE_SRC, { 'data-domain': config.site });
   return {
     send(name, props) {
       w.plausible?.(name, props ? { props } : undefined);
@@ -50,7 +55,9 @@ function umami(config: ProviderConfig): Sender | null {
   if (!config.src) return null;
   const w = window as unknown as { umami?: UmamiApi };
   const pending: Array<[string, Record<string, Prop> | undefined]> = [];
-  addScript(config.src, 'data-website-id', config.site, () => {
+  const attrs: Record<string, string> = { 'data-website-id': config.site };
+  if (config.excludeSearch) attrs['data-exclude-search'] = 'true';
+  addScript(config.src, attrs, () => {
     for (const [name, props] of pending.splice(0)) w.umami?.track(name, props);
   });
   return {

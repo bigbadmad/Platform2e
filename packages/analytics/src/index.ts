@@ -12,6 +12,8 @@ export interface InitOptions {
   config?: Partial<ProviderConfig>;
   /** Log events to the console, and allow running on localhost. A provider is then optional. */
   debug?: boolean;
+  /** Keep the address's query string out of page views. Use it on a page whose address holds a secret. */
+  excludeSearch?: boolean;
 }
 
 const PROVIDERS: readonly string[] = ['plausible', 'umami'];
@@ -65,7 +67,7 @@ export function initAnalytics(options: InitOptions = {}): boolean {
   if (optedOut()) return false;
   if (isLocal() && !debug) return false;
 
-  const config = { ...envConfig(), ...options.config };
+  const config = { ...envConfig(), ...options.config, excludeSearch: options.excludeSearch };
   const wanted = Boolean(config.provider || config.site);
   if (!config.provider || !PROVIDERS.includes(config.provider) || !config.site) {
     if (wanted) console.warn('[analytics] Not started: set both a provider (plausible or umami) and a site.');

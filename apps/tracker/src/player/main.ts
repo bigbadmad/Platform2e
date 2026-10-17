@@ -29,7 +29,8 @@ import {
 import { ROSTER_POLL_MS, rosterKey } from './roster.ts';
 import { actStatus, actStatusKey, doneErrorMessage, type ActStatus, type LocalDone } from './act.ts';
 
-initAnalytics();
+// The address holds the session join code, so page views must not record the query string.
+initAnalytics({ excludeSearch: true });
 
 const appEl = document.getElementById('app')!;
 const SAVED_KEY = 'adnd-tracker-player';

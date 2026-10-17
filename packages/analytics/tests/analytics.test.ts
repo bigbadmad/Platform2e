@@ -60,6 +60,21 @@ describe('starting up', () => {
     expect(s.getAttribute('data-website-id')).toBe('abc-123');
   });
 
+  it('tells Umami to leave the query string out when asked, and only then', () => {
+    const umami = { provider: 'umami', site: 'abc', src: 'https://umami.example.org/script.js' } as const;
+    init({ config: umami, excludeSearch: true });
+    expect(scripts()[0].getAttribute('data-exclude-search')).toBe('true');
+    mod.resetAnalytics();
+    document.head.innerHTML = '';
+    init({ config: umami });
+    expect(scripts()[0].hasAttribute('data-exclude-search')).toBe(false);
+  });
+
+  it('adds nothing extra to the Plausible script when asked to exclude the query string', () => {
+    init({ config: plausibleConfig, excludeSearch: true });
+    expect(scripts()[0].attributes).toHaveLength(3); // defer, src, data-domain
+  });
+
   it('refuses Umami without a script address, with a warning', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     init({ config: { provider: 'umami', site: 'abc-123' } });

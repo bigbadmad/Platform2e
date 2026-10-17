@@ -228,6 +228,7 @@ function buildEncounterGenerator(onAdd: () => void): HTMLElement {
       iconBtn('fa-solid fa-rotate-right', 'Reroll', 'btn btn-secondary', () => {
         const rerolled = generateEncounter(terrainSelect.value);
         renderResult(rerolled);
+        track('tracker_random_encounter', { terrain: terrainSelect.value });
       }),
     );
 

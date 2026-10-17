@@ -62,6 +62,10 @@ Usage numbers come from a privacy-friendly provider (Plausible or Umami). Nothin
 | `VITE_ANALYTICS_SITE` | Plausible: your site's domain. Umami: the website id |
 | `VITE_ANALYTICS_SRC` | Script address. Optional for Plausible (defaults to `https://plausible.io/js/script.js`, set it for a self-hosted install). Required for Umami |
 
+**Umami:** add the site in Umami, open its tracking code, and copy the website id (`VITE_ANALYTICS_SITE`) and the script address (`VITE_ANALYTICS_SRC`). Events appear on their own.
+
+**Plausible:** add each event name from the table below as a custom event goal in the site's settings, or it will not show up. Also register the properties you want to break down.
+
 The provider records page views for each tool (the launcher, `/character/`, `/dungeon/`, `/tracker/` and `/tracker/play.html`) and where visitors came from. Add `?utm_source=…` to links you share, for example one per Facebook group, to see which group sends people.
 
 **Events** (defined in `packages/analytics/src/events.ts`):
@@ -77,7 +81,7 @@ The provider records page views for each tool (the launcher, `/character/`, `/du
 | `tracker_session_started` | A DM starts an online session | none |
 | `tracker_exported`, `tracker_imported` | Encounter export, import | none |
 
-No names, session codes, seeds or anything a person typed is ever sent. Plausible only shows a custom property in its dashboard after you add it in the site's settings.
+No event carries a name, session code, seed or anything a person typed. The one place a secret appears is the player page's address (`play.html?code=…`), so on that page Umami is told to leave the query string out of the page view. Other pages keep theirs, which is what lets `?utm_source=…` work. Plausible stores page paths without query strings other than UTM tags, as I understand its documentation, but check that before relying on it.
 
 **Who is left out:** anyone with Do Not Track or Global Privacy Control on, anyone on localhost, and any browser where you run `localStorage.setItem('p2e-no-analytics', '1')` in the console (do this on your own devices so your testing does not count).
 
