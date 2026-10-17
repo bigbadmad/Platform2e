@@ -1,5 +1,4 @@
-import type { MonsterTemplate, MonsterTag } from '../data/monsters.ts';
-import { MONSTERS, ALL_TAGS, TAG_LABELS } from '../data/monsters.ts';
+import { MONSTERS, ALL_TAGS, TAG_LABELS, type MonsterTemplate, type MonsterTag } from '@platform2e/monsters';
 import { el, btn, iconBtn } from './components.ts';
 
 /**

@@ -13,5 +13,8 @@
   },
   "dependencies": {
     "@platform2e/dice": "*"
+  },
+  "devDependencies": {
+    "@platform2e/monsters": "*"
   }
 }

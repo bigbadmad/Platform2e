@@ -1,10 +1,9 @@
 // AD&D 2e random encounter tables derived from DMG Chapter 11 (Tables 11A-11K).
 // Weights are proportional to encounter frequency in the source tables.
-// "monster" names match MONSTERS in monsters.ts where possible; others are
+// "monster" names match the monster library (@platform2e/monsters) where possible; others are
 // generated with fallback hd/hp for HP rolling.
 
-import { MONSTERS, rollHD } from './monsters.ts';
-import type { MonsterTemplate } from './monsters.ts';
+import { findMonster, rollHD, type MonsterTemplate } from '@platform2e/monsters';
 import { pickWeighted, rollDice } from '@platform2e/dice';
 
 // -- Types --------------------------------------------------------------------
@@ -65,9 +64,7 @@ export function generateEncounter(terrainId: string): GeneratedEncounter | null 
   if (!entry) return null;
 
   const count = rollCount(entry.number);
-  const template = MONSTERS.find(
-    (m) => m.name.toLowerCase() === entry.monster.toLowerCase(),
-  ) ?? null;
+  const template = findMonster(entry.monster) ?? null;
 
   return {
     name: entry.monster,

@@ -28,7 +28,7 @@ src/
 ├── combat.ts            # Pure game logic (no DOM, no state)
 ├── styles.css           # All styles — single file, sectioned by screen
 ├── data/
-│   ├── monsters.ts      # MonsterTemplate[] + rollHD(hd) + ALL_TAGS
+│   ├── (monsters)       # Moved to packages/monsters (@platform2e/monsters)
 │   ├── encounters.ts    # TerrainTable[] + generateEncounter() + rollCount()
 │   ├── loot.ts          # rollLairLoot() + generateLoot() + treasure type tables
 │   └── magicItems.ts    # rollMagicItem() + all DMG magic item sub-tables
@@ -121,14 +121,15 @@ Segments start at 1, so a total of 0 or less would never come up. Lower total ac
 
 ## Data Layer (`src/data/`)
 
-### `monsters.ts`
+### Monster library (`@platform2e/monsters`, `packages/monsters/`)
 - `MonsterTemplate` interface includes `individual?` (treasure type expression e.g. `"Q×3"`) and `lairType?` (letter e.g. `"D"`)
-- `rollHD(hd: string): number` — parses 2e HD notation: `"2"`, `"3+1"`, `"1-1"`, `"1/2"`, `"11+"`, `"45 hp"`, `"45-75 hp"`
+- `rollHD(hd: string, rng?): number` — parses 2e HD notation: `"2"`, `"3+1"`, `"1-1"`, `"1/2"`, `"11+"`, `"45 hp"`, `"45-75 hp"`
 - `MONSTERS: MonsterTemplate[]` — 100+ monsters; names must match encounter table `monster` strings exactly for loot/stat auto-fill
+- `findMonster(name)` — case-insensitive lookup; used by encounters and loot
 
 ### `encounters.ts`
 - `ENCOUNTER_TABLES: TerrainTable[]` — 14 terrain types from DMG Chapter 11
-- `generateEncounter(terrainId): GeneratedEncounter | null` — weighted random pick; rolls count; looks up template in MONSTERS
+- `generateEncounter(terrainId): GeneratedEncounter | null` — weighted random pick; rolls count; looks up the template with `findMonster`
 - `rollEncounterHp(enc): number` — rolls HP from the matched or fallback HD
 
 ### `loot.ts`
@@ -211,7 +212,7 @@ Segments start at 1, so a total of 0 or less would never come up. Lower total ac
 Touch: `types.ts` (`ModifierKind`), `combat.ts` (`calcInitiative`), `ui/setup.ts` (`MOD_KIND_LABELS`, `VALUELESS_KINDS`), `ui/initiative.ts` (background mod display)
 
 ## Adding a New Monster
-Add to `MONSTERS[]` in `monsters.ts`. Include `individual` and `lairType` for loot generation. If the monster appears in an encounter table entry, the `monster` string in the entry must match `name` exactly (after stripping trailing numbers).
+Add to `MONSTERS[]` in `packages/monsters/src/data.ts`. Include `individual` and `lairType` for loot generation. If the monster appears in an encounter table entry, the `monster` string in the entry must match `name` exactly (after stripping trailing numbers).
 
 ## Coding Conventions
 - TypeScript strict mode — no implicit any, unused locals/params are errors
