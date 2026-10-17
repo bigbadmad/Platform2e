@@ -147,6 +147,51 @@ describe('keyboard', () => {
   });
 });
 
+describe('keys pressed inside the panel', () => {
+  const heard = () => {
+    const spy = vi.fn();
+    document.addEventListener('keydown', spy);
+    return spy;
+  };
+
+  it('never reach the tool underneath', () => {
+    mod.registerHelp({ topics, initial: 'one' });
+    mod.mountPlatformBar('tracker');
+    button().click();
+    const spy = heard();
+    for (const key of [' ', 'ArrowRight', 'ArrowLeft', 'a', 'Enter']) press(key, panel());
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('still reach the page from anywhere else', () => {
+    mod.registerHelp({ topics, initial: 'one' });
+    mod.mountPlatformBar('tracker');
+    const spy = heard();
+    press(' ', document.body);
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('do not stop the browser acting on them', () => {
+    mod.registerHelp({ topics, initial: 'one' });
+    mod.mountPlatformBar('tracker');
+    button().click();
+    const event = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+    panel().dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it('Escape inside the panel closes it, once, and ? inside it still toggles', () => {
+    mod.registerHelp({ topics, initial: 'one' });
+    mod.mountPlatformBar('tracker');
+    button().click();
+    press('Escape', panel());
+    expect(panel().hidden).toBe(true);
+    button().click();
+    press('?', panel());
+    expect(panel().hidden).toBe(true);
+  });
+});
+
 describe('onOpen', () => {
   it('reports the topic each time the panel opens, not when the topic changes', () => {
     const onOpen = vi.fn();

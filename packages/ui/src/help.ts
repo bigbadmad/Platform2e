@@ -152,6 +152,18 @@ export function attachHelp(platformBar: HTMLElement): void {
   panel.append(head, body, hint);
   document.body.append(panel);
 
+  // Keys pressed while reading help must never reach the tool underneath, or Space could advance a
+  // combat. Escape closes the panel, ? is left to bubble so it can toggle, and the browser's own
+  // behaviour (scrolling, Tab, activating a button) is untouched because only propagation stops.
+  panel.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      close();
+      e.stopPropagation();
+    } else if (e.key !== '?') {
+      e.stopPropagation();
+    }
+  });
+
   document.addEventListener('keydown', onKey);
   window.addEventListener('resize', () => {
     if (isOpen()) place();

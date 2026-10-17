@@ -35,7 +35,7 @@ export const HELP: Record<string, HelpTopic> = {
       {
         heading: 'Exceptional strength',
         paragraphs: [
-          'A fighter with Strength 18 gets an exceptional strength percentage. It is rolled for you. In DM mode, type it in (00 means 100).',
+          'A fighter, paladin or ranger with Strength 18 gets an exceptional strength percentage, and so does a multi-class character that includes one of them. It is rolled for you. In DM mode, type it in (00 means 100).',
         ],
       },
       {
