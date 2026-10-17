@@ -1,13 +1,15 @@
 import './style.css';
 import { initAnalytics, track } from '@platform2e/analytics';
-import { mountPlatformBar } from '@platform2e/ui';
+import { mountPlatformBar, registerHelp, setHelpTopic } from '@platform2e/ui';
 import { getState, subscribe, saveToFile, loadFromJSON } from './state.js';
 import { initMap, renderMap, exportPNG } from './ui/map.js';
 import { initControls, renderControls, renderRollResults } from './ui/controls.js';
 import { renderRoomKey } from './ui/roomkey.js';
+import { HELP } from './help.js';
 
 function render(): void {
   const state = getState();
+  setHelpTopic(state.rooms.length > 0 ? 'map' : 'start');
   renderMap(state);
   renderControls(state);
   renderRollResults(state);
@@ -16,6 +18,11 @@ function render(): void {
 
 function init(): void {
   initAnalytics();
+  registerHelp({
+    topics: HELP,
+    initial: 'start',
+    onOpen: (topic) => track('help_opened', { page: 'dungeon', topic }),
+  });
   mountPlatformBar('dungeon');
   initMap();
   initControls();

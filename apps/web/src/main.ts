@@ -1,5 +1,6 @@
-import { configuredProvider, initAnalytics } from '@platform2e/analytics';
-import { el, mountPlatformBar, mount } from '@platform2e/ui';
+import { configuredProvider, initAnalytics, track } from '@platform2e/analytics';
+import { el, mountPlatformBar, mount, registerHelp } from '@platform2e/ui';
+import { HELP } from './help.js';
 import { privacyNote } from './privacy.js';
 import './home.css';
 
@@ -22,6 +23,7 @@ const TOOLS = [
 ];
 
 initAnalytics();
+registerHelp({ topics: HELP, initial: 'home', onOpen: (topic) => track('help_opened', { page: 'home', topic }) });
 mountPlatformBar('home');
 
 const page = el('div', { cls: 'home' });

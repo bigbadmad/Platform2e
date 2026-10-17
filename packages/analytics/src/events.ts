@@ -18,6 +18,8 @@ export function countBucket(n: number): CountBucket {
  * To add one, add it here first. Never put anything a person typed into a property.
  */
 export interface AnalyticsEvents {
+  help_opened: { page: string; topic: string };
+
   character_rolled: { method: '4d6' | '3d6' };
   character_exported: { class: string; race: string };
 

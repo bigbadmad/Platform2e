@@ -1,3 +1,5 @@
+/* Dungeon generator. Colours, type and controls come from the shared theme (--p2e-* tokens). */
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -5,10 +7,11 @@
 }
 
 body {
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 13px;
-  background: #f5f0e8;
-  color: #1a1a1a;
+  font-family: var(--p2e-font);
+  font-size: 14px;
+  line-height: 1.4;
+  background: var(--p2e-bg);
+  color: var(--p2e-text);
   height: 100vh;
   overflow: hidden;
   display: flex;
@@ -26,16 +29,17 @@ header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 12px;
-  background: #1a1a1a;
-  color: #f5f0e8;
+  padding: 8px 14px;
+  background: var(--p2e-surface);
+  border-bottom: 1px solid var(--p2e-border);
   flex-shrink: 0;
 }
 
 header h1 {
-  font-size: 15px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--p2e-accent-bright);
 }
 
 #header-actions {
@@ -51,46 +55,43 @@ header h1 {
 
 /* Left panel */
 #left-panel {
-  width: 280px;
+  width: 290px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #1a1a1a;
+  background: var(--p2e-surface);
+  border-right: 1px solid var(--p2e-border);
   overflow: hidden;
 }
 
 #settings-panel {
-  padding: 10px;
-  border-bottom: 1px solid #ccc;
+  padding: 12px;
+  border-bottom: 1px solid var(--p2e-border);
 }
 
 #settings-panel h2 {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-size: 1.05rem;
+  color: var(--p2e-accent);
   margin-bottom: 8px;
 }
 
 #settings-panel label {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  margin-bottom: 6px;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  gap: 3px;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+  color: var(--p2e-text-muted);
 }
 
 #settings-panel button {
   width: 100%;
-  margin-top: 4px;
-  padding: 6px 10px;
+  margin-top: 6px;
 }
 
 #settings-panel .hint {
-  text-transform: none;
-  letter-spacing: 0;
-  color: #777;
+  color: var(--p2e-text-muted);
+  font-size: 0.78rem;
 }
 
 #settings-panel input[type="text"] {
@@ -98,7 +99,7 @@ header h1 {
 }
 
 #generation-controls {
-  padding: 8px 10px;
+  padding: 10px 12px;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -106,10 +107,10 @@ header h1 {
 }
 
 #status-line {
-  padding: 0 10px 8px;
-  font-size: 11px;
-  color: #555;
-  border-bottom: 1px solid #ccc;
+  padding: 0 12px 10px;
+  font-size: 0.85rem;
+  color: var(--p2e-text-muted);
+  border-bottom: 1px solid var(--p2e-border);
   flex-shrink: 0;
 }
 
@@ -120,10 +121,10 @@ header h1 {
 #roll-results {
   flex: 1;
   overflow-y: auto;
-  padding: 8px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 /* Right panel */
@@ -134,6 +135,7 @@ header h1 {
   overflow: hidden;
 }
 
+/* The map is drawn as a paper map, so it keeps its own light background (and so does the PNG export). */
 #map-container {
   flex: 1;
   overflow: hidden;
@@ -152,22 +154,21 @@ header h1 {
 }
 
 #room-key-panel {
-  height: 200px;
-  border-top: 1px solid #1a1a1a;
+  height: 210px;
+  border-top: 1px solid var(--p2e-border);
   overflow-y: auto;
-  padding: 8px;
-  background: #faf8f3;
+  padding: 10px 12px;
+  background: var(--p2e-surface);
 }
 
 #room-key-panel h2 {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-size: 1.05rem;
+  color: var(--p2e-accent);
   margin-bottom: 6px;
   position: sticky;
-  top: 0;
-  background: #faf8f3;
-  padding-bottom: 4px;
+  top: -10px;
+  background: var(--p2e-surface);
+  padding: 2px 0 4px;
 }
 
 #room-key-list {
@@ -176,59 +177,86 @@ header h1 {
   gap: 4px;
 }
 
-/* Buttons */
+/* Buttons: primary by default, .secondary for the quieter ones. */
 button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   font-family: inherit;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  background: #1a1a1a;
-  color: #f5f0e8;
-  border: none;
-  padding: 4px 10px;
+  font-size: 0.9rem;
+  background: var(--p2e-btn-primary-bg);
+  color: var(--p2e-accent-bright);
+  border: 1px solid var(--p2e-accent-dim);
+  border-radius: var(--p2e-radius);
+  padding: 7px 14px;
+  font-weight: bold;
   cursor: pointer;
+  transition: background var(--p2e-transition), border-color var(--p2e-transition), color var(--p2e-transition);
 }
 
 button:hover {
-  background: #444;
+  background: var(--p2e-accent-dim);
+  color: var(--p2e-bg);
 }
 
 button:disabled {
-  background: #888;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
-button.secondary {
-  background: #f5f0e8;
-  color: #1a1a1a;
-  border: 1px solid #1a1a1a;
+button.secondary,
+#header-actions button {
+  background: var(--p2e-btn-secondary-bg);
+  color: var(--p2e-text);
+  border-color: var(--p2e-border-strong);
+  font-weight: normal;
 }
 
-button.secondary:hover {
-  background: #e8e0d0;
+button.secondary:hover,
+#header-actions button:hover {
+  background: var(--p2e-btn-hover-bg);
+  border-color: var(--p2e-accent);
+  color: var(--p2e-text-bright);
 }
 
 button.small {
-  padding: 2px 6px;
-  font-size: 10px;
+  padding: 2px 8px;
+  font-size: 0.8rem;
 }
 
 input[type="number"],
 input[type="text"],
-select {
+select,
+textarea {
   font-family: inherit;
-  font-size: 12px;
-  border: 1px solid #1a1a1a;
-  padding: 2px 4px;
-  background: #faf8f3;
+  font-size: 0.9rem;
+  color: var(--p2e-text-bright);
+  background: var(--p2e-input-bg);
+  border: 1px solid var(--p2e-border);
+  border-radius: var(--p2e-radius);
+  padding: 6px 10px;
+  transition: border-color var(--p2e-transition);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--p2e-accent-dim);
+}
+
+input::placeholder {
+  color: var(--p2e-text-muted);
 }
 
 /* Roll result cards */
 .roll-card {
-  border: 1px solid #ccc;
-  padding: 6px 8px;
-  background: #faf8f3;
-  font-size: 11px;
+  border: 1px solid var(--p2e-border);
+  border-radius: var(--p2e-radius);
+  padding: 8px 10px;
+  background: var(--p2e-surface-alt);
+  font-size: 0.85rem;
 }
 
 .roll-card-header {
@@ -240,69 +268,69 @@ select {
 
 .roll-card-table {
   font-weight: bold;
-  text-transform: uppercase;
-  font-size: 10px;
-  letter-spacing: 0.06em;
+  font-size: 0.85rem;
+  color: var(--p2e-accent);
 }
 
 .roll-card-result {
-  font-size: 12px;
+  font-size: 0.9rem;
+  color: var(--p2e-text-bright);
 }
 
 .roll-step {
-  font-size: 10px;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #777;
+  color: var(--p2e-text-muted);
   margin-top: 6px;
 }
 
 .roll-card-dice {
-  color: #666;
-  font-size: 10px;
+  font-family: var(--p2e-font-mono);
+  color: var(--p2e-text-muted);
+  font-size: 0.8rem;
 }
 
 /* Room key entries */
 .room-key-entry {
-  padding: 4px 6px;
+  padding: 5px 8px;
   border-left: 2px solid transparent;
+  border-radius: 0 var(--p2e-radius) var(--p2e-radius) 0;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 0.85rem;
 }
 
 .room-key-entry:hover {
-  background: #ede8de;
+  background: var(--p2e-surface-alt);
 }
 
 .room-key-entry.highlighted {
-  border-left-color: #1a1a1a;
-  background: #ede8de;
+  border-left-color: var(--p2e-accent);
+  background: var(--p2e-surface-alt);
 }
 
 .room-key-entry-header {
   font-weight: bold;
+  color: var(--p2e-text-bright);
   margin-bottom: 2px;
 }
 
 .room-key-entry-body {
-  color: #444;
+  color: var(--p2e-text);
 }
 
 .room-key-entry-notes {
-  color: #666;
+  color: var(--p2e-text-muted);
   font-style: italic;
   margin-top: 2px;
 }
 
 .room-key-notes-editor {
   width: 100%;
-  font-family: inherit;
-  font-size: 11px;
-  border: 1px solid #ccc;
-  padding: 2px 4px;
-  background: #faf8f3;
+  font-size: 0.85rem;
+  padding: 4px 6px;
   resize: vertical;
-  min-height: 40px;
+  min-height: 44px;
 }
 
 /* Responsive */
@@ -324,7 +352,7 @@ select {
   #left-panel {
     width: 100%;
     border-right: none;
-    border-bottom: 1px solid #1a1a1a;
+    border-bottom: 1px solid var(--p2e-border);
     overflow: visible;
   }
 
