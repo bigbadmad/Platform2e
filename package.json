@@ -17,7 +17,10 @@
     "dev:tracker": "npm run dev -w apps/tracker",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm test --workspaces --if-present",
-    "build": "npm run build --workspaces --if-present"
+    "build": "npm run build --workspaces --if-present",
+    "build:site": "npm run build && node scripts/build-site.mjs",
+    "preview:site": "vite preview --outDir site --port 4173",
+    "dev:web": "npm run dev -w apps/web"
   },
   "devDependencies": {
     "jsdom": "^24.1.0",

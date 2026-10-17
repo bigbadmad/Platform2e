@@ -1,0 +1,8 @@
+# One site for everything. Netlify runs the build from the repository root.
+# The tracker's online play needs VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY set on the site.
+[build]
+  command = "npm run build:site"
+  publish = "site"
+
+[build.environment]
+  NODE_VERSION = "22"

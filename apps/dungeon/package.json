@@ -12,7 +12,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@platform2e/dice": "*"
+    "@platform2e/dice": "*",
+    "@platform2e/ui": "*"
   },
   "devDependencies": {
     "@platform2e/monsters": "*"

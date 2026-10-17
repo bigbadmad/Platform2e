@@ -1,3 +1,4 @@
+import { mountPlatformBar } from '@platform2e/ui';
 import { Generator } from './generator.js';
 
 declare global {
@@ -18,6 +19,8 @@ declare global {
 }
 
 window.addEventListener('load', () => {
+  mountPlatformBar('character');
+
   const roll = document.getElementById('roll') as HTMLInputElement | null;
   if (!roll) return;
   const gen = new Generator(roll);

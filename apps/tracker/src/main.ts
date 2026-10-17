@@ -1,4 +1,5 @@
 import './styles.css';
+import { mountPlatformBar } from '@platform2e/ui';
 import { registerRenderer, registerPublisher, getState, setState, startNewRound } from './state.ts';
 import { renderSetup } from './ui/setup.ts';
 import { renderInitiative } from './ui/initiative.ts';
@@ -8,6 +9,8 @@ import { mount } from './ui/components.ts';
 import { mountSessionBar, publishCurrent } from './ui/sessionBar.ts';
 import { dmIsMidEdit } from './ui/editing.ts';
 import { maxInitiativeSegment, nextActiveSegment } from './combat.ts';
+
+mountPlatformBar('tracker');
 
 const appEl = document.getElementById('app')!;
 

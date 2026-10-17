@@ -19,3 +19,6 @@ Thumbs.db
 *.suo
 *.sw?
 npm-debug.log*
+
+# Assembled site (npm run build:site)
+site/
