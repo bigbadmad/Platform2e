@@ -1,5 +1,5 @@
 import type { PublicView } from '../sync/publicView.ts';
-import type { DeclarationInput, MyDeclaration } from '../sync/session.ts';
+import type { DeclarationExtras, DeclarationInput, MyDeclaration } from '../sync/session.ts';
 
 /** What the declaration area of the player screen should show. */
 export type DeclareStatus =
@@ -9,6 +9,15 @@ export type DeclareStatus =
   /** The DM entered this character's roll themselves (physical dice), so there is nothing to declare. */
   | { kind: 'dm-entered' }
   | { kind: 'declared'; declaration: MyDeclaration };
+
+/**
+ * A whole number typed into a field, or null for anything else. `parseInt` would turn "1.5" into 1
+ * and "5x" into 5, quietly sending a different number from the one on screen.
+ */
+export function parseWhole(text: string): number | null {
+  const t = text.trim();
+  return /^[+-]?\d+$/.test(t) ? Number.parseInt(t, 10) : null;
+}
 
 /**
  * What the declare form starts with. The DM's standing action for the character wins, because after a
@@ -35,6 +44,34 @@ export function shouldAdoptStanding(
 ): boolean {
   if (touched) return false;
   return applied.kind !== next.kind || applied.label !== next.label || applied.value !== next.value;
+}
+
+/**
+ * The DM's standing Dexterity and other adjustments and haste/slow for a character, as the shared view
+ * carries them. The form starts from these, so what the DM entered at setup is already on the player's
+ * screen and the player adds to it.
+ */
+export function standingExtras(view: PublicView | null, characterId: string | null): DeclarationExtras {
+  const me = view?.players.find((p) => p.id === characterId);
+  return {
+    adjustments: me?.adjustments ?? [],
+    hasted: !!me?.hasted,
+    slowed: !!me?.slowed,
+  };
+}
+
+export function sameExtras(a: DeclarationExtras, b: DeclarationExtras): boolean {
+  return (
+    a.hasted === b.hasted &&
+    a.slowed === b.slowed &&
+    a.adjustments.length === b.adjustments.length &&
+    a.adjustments.every((x, i) => x.kind === b.adjustments[i].kind && x.label === b.adjustments[i].label && x.value === b.adjustments[i].value)
+  );
+}
+
+/** As `shouldAdoptStanding`, for the adjustments and speed status: an untouched form follows the DM. */
+export function shouldAdoptExtras(applied: DeclarationExtras, next: DeclarationExtras, touched: boolean): boolean {
+  return !touched && !sameExtras(applied, next);
 }
 
 export function declarationIsCurrent(view: PublicView, declaration: MyDeclaration | null): declaration is MyDeclaration {
@@ -87,5 +124,9 @@ export function declareErrorMessage(message: string): string {
   if (message.includes('cannot act this round')) return 'Your character cannot act this round.';
   if (message.includes('no character selected')) return 'Pick your character first.';
   if (message.includes('session closed')) return 'The session has ended.';
+  if (message.includes('invalid adjustments')) return 'One of your modifiers is not valid. Use whole numbers from -30 to 30.';
+  if (message.includes('submit_declaration') && (message.includes('schema cache') || message.includes('Could not find'))) {
+    return 'The online play server has not been updated for this version yet. Let your DM know.';
+  }
   return 'Could not submit your action. Check your connection and try again.';
 }

@@ -269,3 +269,34 @@ describe('totals write-back', () => {
     expect(callsTo('set_declaration_totals')).toHaveLength(2);
   });
 });
+
+describe('fetchDeclarations', () => {
+  beforeEach(() => {
+    rpc.mockReset();
+  });
+
+  it('leaves out what a declaration did not carry, so the DM\'s own modifiers stand', async () => {
+    rpc.mockResolvedValue({ data: [{ ...decl, adjustments: null, hasted: null, slowed: null }], error: null });
+    const { fetchDeclarations } = await import('./declarations.ts');
+    const [d] = await fetchDeclarations(dm, target);
+    expect(d).toEqual(decl);
+    expect('adjustments' in d).toBe(false);
+  });
+
+  it('keeps an empty list (the player cleared their adjustments) and real flags, and cleans the rest', async () => {
+    rpc.mockResolvedValue({
+      data: [
+        { ...decl, adjustments: [], hasted: true, slowed: false },
+        { ...decl, combatantId: 'p2', adjustments: [{ kind: 'bogus', label: 'x', value: 1 }, { kind: 'other', label: ' Ring ', value: 2 }], hasted: null, slowed: null },
+      ],
+      error: null,
+    });
+    const { fetchDeclarations } = await import('./declarations.ts');
+    const [a, b] = await fetchDeclarations(dm, target);
+    expect(a.adjustments).toEqual([]);
+    expect(a.hasted).toBe(true);
+    expect(a.slowed).toBe(false);
+    expect(b.adjustments).toEqual([{ kind: 'other', label: 'Ring', value: 2 }]);
+    expect('hasted' in b).toBe(false);
+  });
+});

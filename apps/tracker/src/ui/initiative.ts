@@ -1,7 +1,8 @@
 ﻿import type { Combatant, ModifierKind } from '../types.ts';
-import { getState, lockInitiative, setState, updateCombatant, updateCombatantSilent } from '../state.ts';
-import { calcInitiative, canActThisRound, rollD10 } from '../combat.ts';
+import { getState, lockInitiative, setSpeedStatus, setState, updateCombatant, updateCombatantSilent } from '../state.ts';
+import { calcInitiative, canActThisRound, describeInitiative, rollD10 } from '../combat.ts';
 import { el, fmtSign, uid, iconBtn } from './components.ts';
+import { speedToggles } from './speedToggles.ts';
 
 // -- Render initiative entry screen --------------------------------------------
 
@@ -60,7 +61,7 @@ export function renderInitiative(): HTMLElement {
       .combatants.filter((c) => c.isActive && c.type !== 'player')
       .forEach((c) => {
         const roll = rollD10();
-        const total = calcInitiative(roll, c.modifiers);
+        const total = calcInitiative(roll, c.modifiers, c);
         updateCombatant(c.id, { d10Roll: roll, totalInitiative: total });
         // Update the card's displayed roll value
         const rollInput = document.getElementById(`roll-${c.id}`) as HTMLInputElement | null;
@@ -137,17 +138,12 @@ function buildInitiativeCard(c: Combatant, inSurprisePhase: boolean): HTMLElemen
 
   const actionFormRow = el('div', { cls: 'action-form-row' });
 
-  // Kind dropdown - all modifier types, matching the setup screen
+  // Kind dropdown - the action itself. Dex and other adjustments, haste and slow are set below.
   const actionKindSelect = el('select', { cls: 'action-kind-select' }) as HTMLSelectElement;
   const ACTION_KINDS: Array<{ kind: ModifierKind; label: string }> = [
     { kind: 'weapon_speed', label: 'Weapon Speed' },
     { kind: 'spell_casting', label: 'Spell Casting Time' },
-    { kind: 'dex_reaction', label: 'Dex Reaction Adj' },
-    { kind: 'haste', label: 'Haste' },
-    { kind: 'slow', label: 'Slow' },
-    { kind: 'other', label: 'Other' },
   ];
-  const VALUELESS_ACTION_KINDS: ModifierKind[] = ['haste', 'slow'];
   ACTION_KINDS.forEach(({ kind, label }) => {
     const opt = el('option', { text: label, attrs: { value: kind } });
     actionKindSelect.appendChild(opt);
@@ -177,9 +173,8 @@ function buildInitiativeCard(c: Combatant, inSurprisePhase: boolean): HTMLElemen
   function commitAction() {
     const newKind = actionKindSelect.value as ModifierKind;
     const newLabel = actionLabelInput.value.trim();
-    const isValueless = VALUELESS_ACTION_KINDS.includes(newKind);
-    const newValue = isValueless ? 0 : parseInt(actionValueInput.value, 10);
-    if (!isValueless && isNaN(newValue)) return;
+    const newValue = parseInt(actionValueInput.value, 10);
+    if (isNaN(newValue)) return;
 
     let newMods = c.modifiers.map((m) => ({ ...m }));
     if (primaryMod) {
@@ -192,7 +187,7 @@ function buildInitiativeCard(c: Combatant, inSurprisePhase: boolean): HTMLElemen
       newMods.push({ id: uid(), kind: newKind, label: newLabel || 'Attack', value: newValue });
     }
 
-    const newTotal = c.d10Roll !== null ? calcInitiative(c.d10Roll, newMods) : null;
+    const newTotal = c.d10Roll !== null ? calcInitiative(c.d10Roll, newMods, c) : null;
     updateCombatant(c.id, {
       action: newLabel,
       modifiers: newMods,
@@ -201,14 +196,7 @@ function buildInitiativeCard(c: Combatant, inSurprisePhase: boolean): HTMLElemen
   }
 
   // Kind or value change commits immediately (single interaction, re-render OK)
-  // When kind changes, also toggle value input visibility (haste/slow have no value)
-  function updateValueVisibility() {
-    actionValueInput.style.display = VALUELESS_ACTION_KINDS.includes(
-      actionKindSelect.value as ModifierKind,
-    ) ? 'none' : '';
-  }
-  updateValueVisibility(); // set on initial render
-  actionKindSelect.addEventListener('change', () => { updateValueVisibility(); commitAction(); });
+  actionKindSelect.addEventListener('change', commitAction);
   actionValueInput.addEventListener('change', commitAction);
   // Label blur: silent save so tabbing to the value input doesn't lose focus
   actionLabelInput.addEventListener('change', () => {
@@ -218,18 +206,14 @@ function buildInitiativeCard(c: Combatant, inSurprisePhase: boolean): HTMLElemen
   actionFormRow.append(actionKindSelect, actionLabelInput, actionValueInput);
   card.appendChild(actionFormRow);
 
-  // Background modifiers (dex, haste, slow) - static context, not action choices
-  const bgMods = c.modifiers.filter(
-    (m) => m.kind === 'dex_reaction' || m.kind === 'haste' || m.kind === 'slow',
-  );
+  // Standing adjustments (Dex, other) are context here; they are edited in the setup panel
+  const bgMods = c.modifiers.filter((m) => m.kind === 'dex_reaction' || m.kind === 'other');
   if (bgMods.length > 0) {
-    const parts = bgMods.map((m) => {
-      if (m.kind === 'haste') return `${m.label} (\u00f72)`;
-      if (m.kind === 'slow') return `${m.label} (+10)`;
-      return `${m.label} ${fmtSign(m.value)}`;
-    });
+    const parts = bgMods.map((m) => `${m.label} ${fmtSign(m.value)}`);
     card.appendChild(el('p', { cls: 'card-other-mods', text: parts.join(' \u00b7 ') }));
   }
+
+  card.appendChild(speedToggles(c, (status) => setSpeedStatus(c.id, status)));
 
   // d10 input + live total
   const rollRow = el('div', { cls: 'roll-row' });
@@ -256,14 +240,21 @@ function buildInitiativeCard(c: Combatant, inSurprisePhase: boolean): HTMLElemen
     text: c.totalInitiative !== null ? String(c.totalInitiative) : '-',
   });
 
+  const breakdownEl = el('p', {
+    cls: 'initiative-breakdown',
+    text: c.d10Roll !== null ? describeInitiative(c.d10Roll, c.modifiers, c) : '',
+  });
+
   rollInput.addEventListener('input', () => {
     // Update the total preview locally without touching state (avoids focus loss)
     const raw = parseInt(rollInput.value, 10);
     if (isNaN(raw) || raw < 1 || raw > 10) {
       totalEl.textContent = '\u2014';
+      breakdownEl.textContent = '';
       return;
     }
-    totalEl.textContent = String(calcInitiative(raw, c.modifiers));
+    totalEl.textContent = String(calcInitiative(raw, c.modifiers, c));
+    breakdownEl.textContent = describeInitiative(raw, c.modifiers, c);
   });
 
   rollInput.addEventListener('change', () => {
@@ -272,9 +263,10 @@ function buildInitiativeCard(c: Combatant, inSurprisePhase: boolean): HTMLElemen
       // Silent: preview already shows '\u2014'; no re-render needed
       updateCombatantSilent(c.id, { d10Roll: null, totalInitiative: null });
       totalEl.textContent = '\u2014';
+      breakdownEl.textContent = '';
       return;
     }
-    const total = calcInitiative(raw, c.modifiers);
+    const total = calcInitiative(raw, c.modifiers, c);
     totalEl.textContent = String(total);
     // Silent: preview already correct; a full re-render here would destroy the
     // Lock In button before its click event fires if the DM clicks immediately
@@ -284,6 +276,7 @@ function buildInitiativeCard(c: Combatant, inSurprisePhase: boolean): HTMLElemen
 
   rollRow.append(rollLabel, rollInput, el('span', { cls: 'roll-arrow', text: '\u2192' }), totalEl);
   card.appendChild(rollRow);
+  card.appendChild(breakdownEl);
 
   return card;
 }

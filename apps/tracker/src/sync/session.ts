@@ -1,4 +1,5 @@
 import type { PublicView } from './publicView.ts';
+import { cleanAdjustments, type DeclaredAdjustment } from '../combat.ts';
 import { ensureAnonymousUser, getClient } from './supabase.ts';
 
 // -- DM side -------------------------------------------------------------------
@@ -229,24 +230,42 @@ export interface DeclarationInput {
   value: number;
 }
 
+/**
+ * What a player sends with the round's action: their Dexterity and other adjustments (the whole list)
+ * and whether they are hasted or slowed.
+ */
+export interface DeclarationExtras {
+  adjustments: DeclaredAdjustment[];
+  hasted: boolean;
+  slowed: boolean;
+}
+
 /** A player's own declaration for one round. `total` stays null until the DM has applied it. */
 export interface MyDeclaration extends DeclarationInput {
   encounterId: string;
   round: number;
   d10: number;
   total: number | null;
+  /** Null for a declaration that did not carry them (made before players could add modifiers). */
+  adjustments: DeclaredAdjustment[] | null;
+  hasted: boolean | null;
+  slowed: boolean | null;
 }
 
 /** Declare an action for the current round. The d10 is rolled by the server and returned. */
 export async function submitDeclaration(
   sessionId: string,
   input: DeclarationInput,
+  extras: DeclarationExtras,
 ): Promise<{ encounterId: string; round: number; d10: number }> {
   const { data, error } = await getClient().rpc('submit_declaration', {
     p_session_id: sessionId,
     p_kind: input.kind,
     p_label: input.label,
     p_value: input.value,
+    p_adjustments: extras.adjustments,
+    p_hasted: extras.hasted,
+    p_slowed: extras.slowed,
   });
   if (error) throw error;
   return data as { encounterId: string; round: number; d10: number };
@@ -260,7 +279,7 @@ export async function fetchMyDeclaration(
 ): Promise<MyDeclaration | null> {
   const { data, error } = await getClient()
     .from('declarations')
-    .select('encounter_id, round, kind, label, value, d10, total')
+    .select('encounter_id, round, kind, label, value, d10, total, adjustments, hasted, slowed')
     .eq('session_id', sessionId)
     .eq('encounter_id', encounterId)
     .eq('round', round)
@@ -276,6 +295,9 @@ export async function fetchMyDeclaration(
     value: number;
     d10: number;
     total: number | null;
+    adjustments: unknown;
+    hasted: boolean | null;
+    slowed: boolean | null;
   };
   return {
     encounterId: row.encounter_id,
@@ -285,6 +307,9 @@ export async function fetchMyDeclaration(
     value: row.value,
     d10: row.d10,
     total: row.total,
+    adjustments: row.adjustments === null ? null : cleanAdjustments(row.adjustments),
+    hasted: row.hasted,
+    slowed: row.slowed,
   };
 }
 

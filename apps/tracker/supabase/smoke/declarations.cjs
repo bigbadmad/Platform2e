@@ -1,4 +1,4 @@
-// Live smoke test for the declaration functions (migrations 0005 + 0006), run against the real
+// Live smoke test for the declaration functions (migrations 0005 to 0006 and 0008), run against the real
 // Supabase project named in .env.local:   node supabase/smoke/declarations.cjs
 //
 // - Creates one throwaway session and closes it at the end. Closed sessions are removed by
@@ -176,6 +176,47 @@ const player = (id, name, over = {}) => ({ id, name, hasDeclared: false, isActiv
   await p1.rpc('join_session', { p_code: code, p_name: 'Sam' });
   await p1.rpc('claim_combatant', { p_session_id: sessionId, p_combatant_id: 'c1' });
   rejects('leaving and rejoining does not allow a second roll', await submit(p1), 'already declared');
+
+  // -- 0008: adjustments and speed status ------------------------------------------------
+  const submitX = (c, adjustments, hasted, slowed) =>
+    c.rpc('submit_declaration', {
+      p_session_id: sessionId, p_kind: 'weapon_speed', p_label: 'Sword', p_value: 4,
+      p_adjustments: adjustments, p_hasted: hasted, p_slowed: slowed,
+    });
+  await publish(baseView({ encounterId: 'enc-M' }));
+  const adj = (over = {}) => ({ kind: 'dex_reaction', label: 'Dex', value: -2, ...over });
+  rejects('adjustments must be an array', await submitX(p2, { kind: 'other' }, null, null), 'invalid adjustments');
+  rejects('more than six adjustments are rejected', await submitX(p2, Array.from({ length: 7 }, () => adj()), null, null), 'invalid adjustments');
+  rejects('an adjustment of the wrong kind is rejected', await submitX(p2, [adj({ kind: 'weapon_speed' })], null, null), 'invalid adjustments');
+  rejects('an adjustment above 30 is rejected', await submitX(p2, [adj({ value: 31 })], null, null), 'invalid adjustments');
+  rejects('an adjustment below -30 is rejected', await submitX(p2, [adj({ value: -31 })], null, null), 'invalid adjustments');
+  rejects('a fractional adjustment is rejected', await submitX(p2, [adj({ value: 1.5 })], null, null), 'invalid adjustments');
+  rejects('a text adjustment value is rejected', await submitX(p2, [adj({ value: '2' })], null, null), 'invalid adjustments');
+  rejects('an adjustment with no value is rejected', await submitX(p2, [{ kind: 'other', label: 'x' }], null, null), 'invalid adjustments');
+  rejects('a non-object adjustment is rejected', await submitX(p2, [3], null, null), 'invalid adjustments');
+  const good = await submitX(p2, [adj({ label: '  Dex 17  ', extra: 'dropped' }), { kind: 'other', value: 1 }], true, false);
+  check('a valid declaration with adjustments and haste is accepted', !good.error, errText(good));
+  const gM = await get(secret, 'enc-M', 1);
+  const mine = gM.data && gM.data.find((d) => d.combatantId === 'c5');
+  check('DM sees the cleaned adjustments (trimmed label, default label, no extra keys)',
+    !!mine && JSON.stringify(mine.adjustments) === JSON.stringify([{ kind: 'dex_reaction', label: 'Dex 17', value: -2 }, { kind: 'other', label: 'Other', value: 1 }]),
+    JSON.stringify(mine && mine.adjustments));
+  check('DM sees hasted true and slowed false', !!mine && mine.hasted === true && mine.slowed === false);
+  const own = await p2.from('declarations').select('adjustments, hasted, slowed').eq('encounter_id', 'enc-M');
+  check('the player can read their own adjustments back', !own.error && own.data.length === 1 && own.data[0].hasted === true && own.data[0].adjustments.length === 2, JSON.stringify(own.data));
+
+  // A declaration from before 0008 sends four arguments: it still works and carries nothing extra.
+  await publish(baseView({ encounterId: 'enc-N' }));
+  const legacy = await submit(p1);
+  check('a four-argument (older client) declaration is still accepted', !legacy.error, errText(legacy));
+  const gN = await get(secret, 'enc-N', 1);
+  check('it carries null adjustments and status, so the DM\'s own stand',
+    !gN.error && gN.data.length === 1 && gN.data[0].adjustments === null && gN.data[0].hasted === null && gN.data[0].slowed === null, JSON.stringify(gN.data));
+  const empty = await submitX(p2, [], null, null);
+  check('an empty adjustment list is accepted', !empty.error, errText(empty));
+  const gN2 = await get(secret, 'enc-N', 1);
+  const emptyRow = gN2.data && gN2.data.find((d) => d.combatantId === 'c5');
+  check('and stored as empty, not null (it clears the DM\'s list)', !!emptyRow && Array.isArray(emptyRow.adjustments) && emptyRow.adjustments.length === 0, JSON.stringify(emptyRow));
 
   // -- Closing the session ----------------------------------------------------------------
   await dm.rpc('close_session', { p_code: code, p_secret: secret });

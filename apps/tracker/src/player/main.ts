@@ -19,14 +19,17 @@ import {
   type Seat,
 } from '../sync/session.ts';
 import { el, btn, labeledInput, mount, faIcon } from '../ui/components.ts';
+import { calcInitiative, describeInitiative } from '../combat.ts';
+import type { Modifier } from '../types.ts';
 import {
   declareDefaults,
   declareErrorMessage,
   declareStatus,
   declareStatusKey,
-  shouldAdoptStanding,
+  standingExtras,
   type DeclareStatus,
 } from './declare.ts';
+import { buildDeclareForm, type FormValues } from './declareForm.ts';
 import { ROSTER_POLL_MS, rosterKey } from './roster.ts';
 import { actStatus, actStatusKey, doneErrorMessage, type ActStatus, type LocalDone } from './act.ts';
 
@@ -478,7 +481,7 @@ function renderDeclare(live: Live, status: DeclareStatus): void {
 
   switch (status.kind) {
     case 'form':
-      live.ui.declare.replaceChildren(buildDeclareForm(live));
+      live.ui.declare.replaceChildren(mountDeclareForm(live));
       break;
     case 'blocked':
       live.ui.declare.replaceChildren(el('p', { cls: 'player-status', text: status.reason }));
@@ -496,12 +499,28 @@ function renderDeclare(live: Live, status: DeclareStatus): void {
   }
 }
 
+/**
+ * The sum behind the player's own declaration, e.g. "4 +5 -2 -2 = 5". Left out when the DM's total
+ * differs (they changed something after the declaration), so the page never shows two answers.
+ */
+function declaredFormula(d: MyDeclaration): string | null {
+  if (d.total === null || d.adjustments === null) return null;
+  const mods: Modifier[] = [
+    { id: 'a', kind: d.kind, label: d.label || 'Action', value: d.value },
+    ...d.adjustments.map((a, i) => ({ id: `adj${i}`, kind: a.kind, label: a.label, value: a.value })),
+  ];
+  const status = { hasted: !!d.hasted, slowed: !!d.slowed };
+  return calcInitiative(d.d10, mods, status) === d.total ? describeInitiative(d.d10, mods, status) : null;
+}
+
 function buildDeclared(d: MyDeclaration): HTMLElement {
   const box = el('div', { cls: 'player-declared' });
   box.appendChild(el('p', { cls: 'callout-label', text: `Your action - round ${d.round}` }));
   const kindName = d.kind === 'spell_casting' ? 'casting time' : 'speed';
   box.appendChild(el('p', { cls: 'player-declared-action', text: `${d.label || 'Action'} (${kindName} ${d.value})` }));
   box.appendChild(el('p', { text: `You rolled a ${d.d10} on the d10.` }));
+  const formula = declaredFormula(d);
+  if (formula) box.appendChild(el('p', { cls: 'player-formula', text: formula }));
   box.appendChild(
     d.total === null
       ? el('p', { cls: 'empty-hint', text: 'Waiting for the DM to add it up...' })
@@ -514,90 +533,37 @@ function standingAction(live: Live): DeclarationInput | null {
   return live.view?.players.find((p) => p.id === live.seat.combatantId)?.action ?? null;
 }
 
-function buildDeclareForm(live: Live): HTMLElement {
-  const start = declareDefaults(standingAction(live), live.draft);
-  const form = el('div', { cls: 'player-declare' });
-  form.appendChild(el('h3', { text: 'Declare your action' }));
-
-  const kindGroup = el('div', { cls: 'form-group' });
-  kindGroup.appendChild(el('label', { text: 'Type', attrs: { for: 'decl-kind' } }));
-  const kindSelect = el('select', { attrs: { id: 'decl-kind', name: 'decl-kind' } });
-  kindSelect.appendChild(el('option', { text: 'Weapon (speed factor)', attrs: { value: 'weapon_speed' } }));
-  kindSelect.appendChild(el('option', { text: 'Spell (casting time)', attrs: { value: 'spell_casting' } }));
-  kindSelect.value = start.kind;
-  kindGroup.appendChild(kindSelect);
-
-  const labelGroup = labeledInput({ label: 'Action', id: 'decl-label', type: 'text', value: start.label, placeholder: 'e.g. Long sword' });
-  const labelInput = labelGroup.querySelector('input')!;
-  labelInput.maxLength = 40;
-  labelInput.autocomplete = 'off';
-
-  const valueGroup = labeledInput({ label: 'Speed / casting time', id: 'decl-value', type: 'number', value: String(start.value), min: '0', max: '30' });
-  const valueInput = valueGroup.querySelector('input')!;
-  valueInput.inputMode = 'numeric';
-
-  const error = el('p', { cls: 'player-error', attrs: { role: 'alert' } });
-  const rollBtn = btn('Roll d10 and lock in', 'btn btn-primary btn-start', () => void submit());
-
-  const readInput = (): DeclarationInput | null => {
-    const value = Number.parseInt(valueInput.value, 10);
-    if (!Number.isInteger(value) || value < 0 || value > 30) return null;
-    return { kind: kindSelect.value === 'spell_casting' ? 'spell_casting' : 'weapon_speed', label: labelInput.value.trim(), value };
+function currentFormValues(live: Live): FormValues {
+  return {
+    input: declareDefaults(standingAction(live), live.draft),
+    extras: standingExtras(live.view, live.seat.combatantId),
   };
+}
 
-  // Keep what has been typed so a screen refresh or reload never costs the player their entry.
-  const rememberDraft = (): void => {
-    const input = readInput();
-    if (input) {
+function mountDeclareForm(live: Live): HTMLElement {
+  const form = buildDeclareForm({
+    start: currentFormValues(live),
+    current: () => currentFormValues(live),
+    remember: (input) => {
       live.draft = input;
       saveDraft(input);
-    }
-  };
-  [kindSelect, labelInput, valueInput].forEach((control) => control.addEventListener('change', rememberDraft));
-
-  // Follow the DM while the form is untouched: if they correct this character's weapon or speed before
-  // the player has typed anything, the form takes the new values. After the first keystroke it is theirs.
-  let touched = false;
-  let applied = start;
-  [kindSelect, labelInput, valueInput].forEach((control) => {
-    control.addEventListener('input', () => { touched = true; });
-    control.addEventListener('change', () => { touched = true; });
+    },
+    submit: async ({ input, extras }) => {
+      try {
+        const res = await submitDeclaration(live.seat.sessionId, input, extras);
+        live.declaration = { ...input, ...extras, encounterId: res.encounterId, round: res.round, d10: res.d10, total: null };
+        renderLive(live);
+        return null;
+      } catch (err) {
+        const message = errorText(err);
+        if (message.includes('already declared')) await refreshDeclaration(live);
+        renderLive(live);
+        return declareErrorMessage(message);
+      }
+    },
   });
-  live.ui.syncForm = () => {
-    const next = declareDefaults(standingAction(live), live.draft);
-    if (!shouldAdoptStanding(applied, next, touched)) return;
-    applied = next;
-    kindSelect.value = next.kind;
-    labelInput.value = next.label;
-    valueInput.value = String(next.value);
-  };
-
-  async function submit(): Promise<void> {
-    const input = readInput();
-    if (!input) {
-      error.textContent = 'Enter a speed between 0 and 30.';
-      return;
-    }
-    live.draft = input;
-    saveDraft(input);
-    error.textContent = '';
-    rollBtn.disabled = true;
-    rollBtn.textContent = 'Rolling...';
-    try {
-      const res = await submitDeclaration(live.seat.sessionId, input);
-      live.declaration = { ...input, encounterId: res.encounterId, round: res.round, d10: res.d10, total: null };
-    } catch (err) {
-      const message = errorText(err);
-      error.textContent = declareErrorMessage(message);
-      rollBtn.disabled = false;
-      rollBtn.textContent = 'Roll d10 and lock in';
-      if (message.includes('already declared')) await refreshDeclaration(live);
-    }
-    renderLive(live);
-  }
-
-  form.append(kindGroup, labelGroup, valueGroup, rollBtn, error);
-  return form;
+  live.ui.syncForm = form.sync;
+  return form.root;
 }
 
 // -- Boot ----------------------------------------------------------------------

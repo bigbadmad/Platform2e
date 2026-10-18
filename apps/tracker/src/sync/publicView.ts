@@ -1,5 +1,12 @@
 import type { AppPhase, AppState } from '../types.ts';
-import { getCombatantsAtSegment, primaryAction, segmentDoneFor, type DeclaredAction } from '../combat.ts';
+import {
+  getCombatantsAtSegment,
+  primaryAction,
+  segmentDoneFor,
+  standingAdjustments,
+  type DeclaredAction,
+  type DeclaredAdjustment,
+} from '../combat.ts';
 
 export interface PublicActor {
   id: string;
@@ -20,9 +27,17 @@ export interface PublicPlayer {
   /**
    * The weapon or spell the DM set up for this character, so the player's declare form starts from it
    * rather than a generic default. It is the party's own gear, but it is in the shared view, so every
-   * player can read every party member's - dex, haste and slow are never included.
+   * player can read every party member's.
    */
   action: DeclaredAction | null;
+  /**
+   * The Dexterity and other adjustments the DM entered for this character, and whether they are
+   * hasted or slowed, so the player's form starts from them and can add to them. Party data only:
+   * a monster's modifiers are never published.
+   */
+  adjustments: DeclaredAdjustment[];
+  hasted: boolean;
+  slowed: boolean;
 }
 
 /** Everything players are allowed to see. Built field-by-field so new Combatant fields never leak by default. */
@@ -77,6 +92,9 @@ export function toPublicView(state: Readonly<AppState>): PublicView {
         isHorsDeCombat: c.isHorsDeCombat,
         isSurprised: c.isSurprised,
         action: primaryAction(c.modifiers, c.action),
+        adjustments: standingAdjustments(c.modifiers),
+        hasted: !!c.hasted,
+        slowed: !!c.slowed,
       }),
     );
 
