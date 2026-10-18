@@ -11,6 +11,15 @@ export type DeclareStatus =
   | { kind: 'declared'; declaration: MyDeclaration };
 
 /**
+ * A whole number typed into a field, or null for anything else. `parseInt` would turn "1.5" into 1
+ * and "5x" into 5, quietly sending a different number from the one on screen.
+ */
+export function parseWhole(text: string): number | null {
+  const t = text.trim();
+  return /^[+-]?\d+$/.test(t) ? Number.parseInt(t, 10) : null;
+}
+
+/**
  * What the declare form starts with. The DM's standing action for the character wins, because after a
  * declaration is applied it IS the player's last choice, and it also reflects anything the DM has
  * changed since. The remembered draft only fills in when the DM has set nothing up.

@@ -10,7 +10,7 @@ import type { DeclarationExtras, DeclarationInput } from '../sync/session.ts';
 import type { Modifier } from '../types.ts';
 import { btn, el, labeledInput } from '../ui/components.ts';
 import { speedToggles } from '../ui/speedToggles.ts';
-import { shouldAdoptExtras, shouldAdoptStanding } from './declare.ts';
+import { parseWhole, shouldAdoptExtras, shouldAdoptStanding } from './declare.ts';
 
 export interface FormValues {
   input: DeclarationInput;
@@ -67,6 +67,11 @@ export function buildDeclareForm(hooks: DeclareFormHooks): DeclareForm {
   // The list is held as data and drawn from it. Typing in a row updates the data without redrawing, so
   // a keystroke never costs the player their cursor; only add, remove and a DM change redraw.
   let adjustments: DeclaredAdjustment[] = start.extras.adjustments.map((a) => ({ ...a }));
+  // What was typed in a row's value box, and which rows hold something that is not a whole number in
+  // range. A bad row keeps its last good value for the preview, but blocks the submit.
+  const rawValues = new WeakMap<DeclaredAdjustment, string>();
+  const badRows = new WeakSet<DeclaredAdjustment>();
+  const hasBadRow = (): boolean => adjustments.some((a) => badRows.has(a));
   let hasted = start.extras.hasted;
   let slowed = start.extras.slowed;
 
@@ -91,18 +96,20 @@ export function buildDeclareForm(hooks: DeclareFormHooks): DeclareForm {
   addBtn.type = 'button';
 
   const mods = (): Modifier[] => {
-    const speed = Number.parseInt(valueInput.value, 10);
+    const speed = parseWhole(valueInput.value);
     const action: Modifier = {
       id: ACTION_ID,
       kind: kindSelect.value === 'spell_casting' ? 'spell_casting' : 'weapon_speed',
       label: labelInput.value.trim() || 'Action',
-      value: Number.isInteger(speed) ? speed : 0,
+      value: speed ?? 0,
     };
     return [action, ...adjustments.map((a, i) => ({ id: `adj${i}`, kind: a.kind, label: a.label.trim() || (a.kind === 'dex_reaction' ? 'Dex' : 'Other'), value: a.value }))];
   };
 
   const refresh = (): void => {
-    bonusLine.textContent = `Added to your d10: ${describeBonus(mods(), { hasted, slowed })}`;
+    bonusLine.textContent = hasBadRow()
+      ? 'A modifier is not a whole number from -30 to 30. Fix it to continue.'
+      : `Added to your d10: ${describeBonus(mods(), { hasted, slowed })}`;
     addBtn.disabled = adjustments.length >= MAX_ADJUSTMENTS;
   };
 
@@ -131,10 +138,19 @@ export function buildDeclareForm(hooks: DeclareFormHooks): DeclareForm {
 
       const value = el('input', { attrs: { type: 'number', 'aria-label': 'Modifier value', min: String(-MAX_ADJUSTMENT_VALUE), max: String(MAX_ADJUSTMENT_VALUE), step: '1' } }) as HTMLInputElement;
       value.inputMode = 'numeric';
-      value.value = String(adj.value);
+      value.value = rawValues.get(adj) ?? String(adj.value);
+      if (badRows.has(adj)) value.setAttribute('aria-invalid', 'true');
       value.addEventListener('input', () => {
-        const n = Number.parseInt(value.value, 10);
-        adj.value = Number.isInteger(n) ? n : 0;
+        rawValues.set(adj, value.value);
+        const n = parseWhole(value.value);
+        if (n === null || Math.abs(n) > MAX_ADJUSTMENT_VALUE) {
+          badRows.add(adj);
+          value.setAttribute('aria-invalid', 'true');
+        } else {
+          badRows.delete(adj);
+          value.removeAttribute('aria-invalid');
+          adj.value = n;
+        }
         touch();
         refresh();
       });
@@ -170,8 +186,8 @@ export function buildDeclareForm(hooks: DeclareFormHooks): DeclareForm {
   const rollBtn = btn('Roll d10 and lock in', 'btn btn-primary btn-start', () => void submit());
 
   const readInput = (): DeclarationInput | null => {
-    const value = Number.parseInt(valueInput.value, 10);
-    if (!Number.isInteger(value) || value < 0 || value > 30) return null;
+    const value = parseWhole(valueInput.value);
+    if (value === null || value < 0 || value > 30) return null;
     return { kind: kindSelect.value === 'spell_casting' ? 'spell_casting' : 'weapon_speed', label: labelInput.value.trim(), value };
   };
   const readExtras = (): DeclarationExtras => ({
@@ -221,6 +237,10 @@ export function buildDeclareForm(hooks: DeclareFormHooks): DeclareForm {
     const input = readInput();
     if (!input) {
       error.textContent = 'Enter a speed between 0 and 30.';
+      return;
+    }
+    if (hasBadRow()) {
+      error.textContent = 'Modifiers must be whole numbers from -30 to 30.';
       return;
     }
     const extras = readExtras();

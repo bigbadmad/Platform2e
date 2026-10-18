@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
 import { buildDeclareForm, type DeclareFormHooks, type FormValues } from './declareForm.ts';
-import { sameExtras, shouldAdoptExtras, standingExtras } from './declare.ts';
+import { parseWhole, sameExtras, shouldAdoptExtras, standingExtras } from './declare.ts';
 import { toPublicView } from '../sync/publicView.ts';
 import type { AppState, Combatant } from '../types.ts';
 
@@ -113,6 +113,40 @@ describe('declare form modifiers', () => {
     expect(rollBtn().disabled).toBe(false);
   });
 
+  it('rejects a fractional or malformed modifier instead of rounding it', () => {
+    const { submit } = setup();
+    const value = rows()[0].querySelectorAll('input')[1] as HTMLInputElement;
+    for (const bad of ['1.5', '2x', '1e1', '', '31', '-31']) {
+      type(value, bad);
+      click(rollBtn());
+      expect(submit, bad).not.toHaveBeenCalled();
+      expect(document.querySelector('.player-error')!.textContent, bad).toContain('whole numbers');
+      expect(value.getAttribute('aria-invalid'), bad).toBe('true');
+      expect(bonus(), bad).toContain('Fix it');
+    }
+    type(value, '-3');
+    expect(value.hasAttribute('aria-invalid')).toBe(false);
+    expect(bonus()).toContain('-3 Dex 17');
+  });
+
+  it('keeps what was typed in a bad row when another row is removed', () => {
+    setup();
+    click(addBtn());
+    const first = rows()[0].querySelectorAll('input')[1] as HTMLInputElement;
+    type(first, '1.5');
+    click(rows()[1].querySelector('button')!);
+    const again = rows()[0].querySelectorAll('input')[1] as HTMLInputElement;
+    expect(again.value).toBe('1.5');
+    expect(again.getAttribute('aria-invalid')).toBe('true');
+  });
+
+  it('refuses a fractional speed too', () => {
+    const { submit } = setup();
+    type(document.getElementById('decl-value') as HTMLInputElement, '5.5');
+    click(rollBtn());
+    expect(submit).not.toHaveBeenCalled();
+  });
+
   it('refuses a speed outside 0 to 30 without calling the server', () => {
     const { submit } = setup();
     type(document.getElementById('decl-value') as HTMLInputElement, '40');
@@ -190,5 +224,14 @@ describe('standing modifiers in the shared view', () => {
     expect(shouldAdoptExtras(a, { ...a, slowed: true }, false)).toBe(true);
     expect(shouldAdoptExtras(a, { ...a, slowed: true }, true)).toBe(false);
     expect(shouldAdoptExtras(a, a, false)).toBe(false);
+  });
+});
+
+describe('parseWhole', () => {
+  it('accepts whole numbers only', () => {
+    expect(parseWhole('5')).toBe(5);
+    expect(parseWhole(' -2 ')).toBe(-2);
+    expect(parseWhole('+3')).toBe(3);
+    for (const bad of ['', ' ', '1.5', '5x', '1e1', 'abc', '--1']) expect(parseWhole(bad), bad).toBeNull();
   });
 });
