@@ -98,10 +98,12 @@ localStorage key: `'adnd-tracker'`. Migration in `loadPersistedState` adds missi
 
 ```
 base = d10 + weapon_speed + spell_casting + other_mods + dex_reaction
-if hasHaste:  base = max(1, floor(base / 2))
-if hasSlow:   base += 10
+if hasted:  base += HASTE_INITIATIVE            // -2
+if slowed:  dex_reaction bonuses (negative values) are dropped; penalties stay
 total = max(1, base)
 ```
+
+Haste and slow are `Combatant.hasted` / `slowed` flags, not modifiers. If both are set they cancel (`speedEffect`). The 2e slow text gives no initiative number, only "all Dexterity combat bonuses are negated", so that is all slow does to the total; its +4 AC and -4 to hit are shown as a chip and not applied to the displayed AC or THAC0. `migrateCombatant` turns haste/slow modifiers in an old save or export into the flags. Stored totals are kept, except in the initiative phase, where a rolled total is recomputed under the new rules so the card agrees with itself.
 
 Segments start at 1, so a total of 0 or less would never come up. Lower total acts first. Ties = simultaneous. Surprised combatants get sentinel 99 (excluded from all segments). HdC combatants also get sentinel 99 and are excluded.
 
@@ -148,10 +150,10 @@ Segments start at 1, so a total of 0 or less would never come up. Lower total ac
 ### Principles
 - **The DM client is authoritative.** Full `AppState` (monster HP, AC, loot, targets) stays in the DM's browser. Nothing private is synced.
 - **Players see only `toPublicView(state)`**, which is built field by field so a new `Combatant` field never leaks by default. `publicView.test.ts` fails if a private field appears in the serialised view. Keep it that way when adding to `PublicView`.
-  The one deliberate exception to "players see only their own": `PublicPlayer.action` carries each character's standing weapon/spell (kind, label, speed) so a declare form starts from what the DM set up. Dex reaction, haste and slow are never included, and a test enforces that.
+  The one deliberate exception to "players see only their own": `PublicPlayer` carries each character's standing weapon/spell (`action`), Dex and other adjustments (`adjustments`) and `hasted`/`slowed`, so the declare form starts from what the DM set up. That is party data and every player can read every party member's. A monster's modifiers are never published, and a test enforces that.
 - **Players never write tables.** Every player action is a `security definer` RPC that checks membership and the DM's published view. Clients have no insert/update/delete grants.
 - **Sync is optional.** `syncAvailable` is false without env vars; the DM session bar is not mounted and `play.html` says online play is not configured.
-- **The d10 is rolled by the server.** The DM client folds a declaration into state with the same `calcInitiative` the offline flow uses. Players can declare only weapon speed or casting time; dex, haste and slow stay DM-held.
+- **The d10 is rolled by the server.** The DM client folds a declaration into state with the same `calcInitiative` the offline flow uses. A declaration carries the action (weapon speed or casting time), the player's whole list of Dex/other adjustments (`adjustments`, at most 6, whole values -30..30, replacing the DM's list for that round) and `hasted`/`slowed`. The form starts from the DM's values, so a player adds to them. Those three fields are null on a declaration from an older client, and the DM's own modifiers then stand (an empty list is different: the player cleared them). The DM can still correct anything on the initiative screen, and sees the totals before locking in.
 
 ### Round loop
 1. DM starts a round → `phase: 'initiative'`, published with `encounterId` + `roundNumber`.
@@ -169,7 +171,7 @@ Segments start at 1, so a total of 0 or less would never come up. Lower total ac
 | `sessions` | Code + DM secret hash, `closed_at`. Unreadable by clients |
 | `session_views` | The published public view + `revision`. Members read; players subscribe via Realtime |
 | `players` | Seat per anonymous user, `combatant_id` claim. Members read `id, session_id, name, combatant_id` only (never `auth_uid`) |
-| `declarations` | Remote declarations + DM-written `total`. Players read own rows only |
+| `declarations` | Remote declarations (action, adjustments, hasted/slowed) + DM-written `total`. Players read own rows only |
 | `segment_done` | Done taps per `(encounter, round, segment, combatant)`. Unreadable by clients; the DM reads it via RPC and republishes `done` in the view |
 | DM RPCs (secret-gated) | `create_session`, `publish_view`, `close_session`, `get_declarations`, `set_declaration_totals`, `get_segment_done` |
 | Player RPCs | `join_session`, `leave_session`, `claim_combatant`, `submit_declaration`, `mark_done` |
@@ -188,7 +190,7 @@ Segments start at 1, so a total of 0 or less would never come up. Lower total ac
 
 ### Testing
 - **Unit tests** (`npm test`) mock the Supabase client and use fake timers. Module-level sync state means tests `vi.resetModules()` and re-import.
-- **Live smoke tests**: `supabase/smoke/declarations.cjs` (migrations 0005–0006) and `supabase/smoke/segment-done.cjs` (0007) run against the real project from `.env.local`. Each leaves one closed test session behind and uses two anonymous sign-ins (Supabase rate-limits those per IP, so don't loop them). Run the matching one after applying a migration, before deploying.
+- **Live smoke tests**: `supabase/smoke/declarations.cjs` (migrations 0005–0006 and 0008) and `supabase/smoke/segment-done.cjs` (0007) run against the real project from `.env.local`. Each leaves one closed test session behind and uses two anonymous sign-ins (Supabase rate-limits those per IP, so don't loop them). Run the matching one after applying a migration, before deploying.
 - **Realtime**: `SUBSCRIBED` fires before the server-side subscription is live. Tests must wait several seconds after it, and clients re-read once on `SUBSCRIBED` to close the gap (see `subscribeToView`, `subscribeToMyDeclarations`).
 - `supabase/maintenance/cleanup_sessions.sql` removes old test sessions; run it in the SQL editor.
 

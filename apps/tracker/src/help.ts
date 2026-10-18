@@ -12,7 +12,7 @@ export const HELP: Record<string, HelpTopic> = {
       {
         heading: 'Players and monsters',
         items: [
-          'Add Player: a name, plus any standing initiative modifiers such as weapon speed, casting time, dexterity reaction, haste or slow.',
+          'Add Player: a name, plus any standing initiative modifiers such as weapon speed, casting time or dexterity reaction. Tick Hasted or Slowed if a spell is in effect. Haste takes 2 off the total and slow cancels Dexterity bonuses. They cancel each other.',
           'Add Monster/NPC: a name, Max HP and a quantity. Browse Monster Library fills in the stats for you.',
           'Loot & XP (optional): a treasure type and XP per kill feed the loot screen after the fight.',
           'Tick Surprised for anyone caught off guard. They cannot act in the surprise segments.',
@@ -48,6 +48,7 @@ export const HELP: Record<string, HelpTopic> = {
         heading: 'Each combatant',
         items: [
           'Speed is the weapon speed or casting time for this round, and Label is what they are doing.',
+          'Hasted and Slowed switch a spell on or off for that combatant. The line under the roll shows how the total adds up, including a Dexterity bonus that slow cancels.',
           'Range marks someone who is at range rather than in melee.',
           'HdC marks a combatant who is hors de combat and will not act this round. Mark Recovered brings them back.',
         ],
@@ -63,7 +64,7 @@ export const HELP: Record<string, HelpTopic> = {
       {
         heading: 'Online play',
         paragraphs: [
-          'With an online session running, players declare their own actions and the server rolls their d10. When everyone has declared, auto-lock can start combat for you.',
+          'With an online session running, players declare their own actions and the server rolls their d10. They start from the modifiers you entered for their character and can add their own, or tick Hasted or Slowed. Check the totals before you lock in. When everyone has declared, auto-lock can start combat for you.',
         ],
       },
     ],

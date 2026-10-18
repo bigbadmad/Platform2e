@@ -28,7 +28,8 @@ Setup → Initiative → Combat → Loot → Setup (players pre-loaded)
 
 ### Setup Screen
 - Add players and monsters/NPCs individually; quantity multiplier for groups (e.g. "5 × Goblin")
-- Assign standing modifiers per combatant: weapon speed, spell casting time, Dex reaction adjustment, Haste, Slow, or custom
+- Assign standing modifiers per combatant: weapon speed, spell casting time, Dex reaction adjustment, or custom. Haste and Slow are on/off toggles, not modifiers
+- Online players see the modifiers the DM entered for their character, can add their own (Dex reaction, anything else), and can tick Hasted or Slowed
 - **Monster Library** — searchable catalogue of 100+ monsters from the 2e Monstrous Manual, filterable by type (Humanoid, Undead, Beast, Giant, Dragon, etc.); selecting a monster pre-fills name, HP (rolled from actual hit dice), AC, attacks, damage, THAC0, and weapon speed modifier
 - **Random Encounter Generator** — choose terrain type and click Generate; rolls a weighted monster from 14 terrain tables drawn from DMG Chapter 11, rolls number appearing, and adds them to the encounter with full stats
 - Drag-to-reorder combatants in the list
@@ -73,15 +74,16 @@ Appears automatically when all monsters are defeated.
 
 ## AD&D 2e Initiative Rules
 
-**Formula**: `d10 + weapon_speed + spell_casting + other + dex_reaction`, then haste halves (floor, min 1), then slow adds 10
+**Formula**: `d10 + weapon_speed + spell_casting + other + dex_reaction`, plus -2 if hasted, never lower than 1. A negative modifier is a bonus (acts sooner)
 
 | Rule | Implementation |
 |---|---|
 | Lower total acts first | Combatants sorted ascending |
 | Ties | Simultaneous — both effects resolve |
 | Surprise | Round 0; surprised combatants excluded from all segments |
-| Haste | Halves linear total before slow is applied |
-| Slow | Adds 10 to final total |
+| Haste | -2 initiative. Also doubles movement and attack rates (informational) |
+| Slow | Negates Dex reaction bonuses (a Dex penalty still applies). Also +4 AC, -4 to hit, half movement and attacks (informational, not applied to displayed AC) |
+| Haste and slow | Cancel each other out |
 | Segments | 1–10+ based on highest active initiative |
 
 ---

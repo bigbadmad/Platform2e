@@ -8,7 +8,14 @@ import {
   nextActiveSegment,
   firstActiveSegment,
   describeModifiers,
+  describeInitiative,
   netModifierOffset,
+  speedEffect,
+  initiativeParts,
+  standingAdjustments,
+  cleanAdjustments,
+  applyDeclaredAdjustments,
+  HASTE_INITIATIVE,
 } from './combat.ts';
 import type { Combatant, Modifier, ModifierKind } from './types.ts';
 
@@ -67,16 +74,15 @@ describe('calcInitiative', () => {
     expect(calcInitiative(5, [mod('other', 3)])).toBe(8);
   });
 
-  it('halves with haste, flooring odd totals', () => {
-    expect(calcInitiative(9, [mod('haste', 0)])).toBe(4); // floor(9/2) = 4
-  });
-
-  it('halves with haste, even totals', () => {
-    expect(calcInitiative(10, [mod('haste', 0)])).toBe(5);
+  it('haste takes 2 off the total', () => {
+    expect(HASTE_INITIATIVE).toBe(-2);
+    expect(calcInitiative(9, [], { hasted: true })).toBe(7);
+    expect(calcInitiative(5, [mod('weapon_speed', 3)], { hasted: true })).toBe(6);
   });
 
   it('enforces minimum 1 with haste on very low totals', () => {
-    expect(calcInitiative(1, [mod('haste', 0)])).toBe(1); // max(1, floor(1/2)=0) = 1
+    expect(calcInitiative(1, [], { hasted: true })).toBe(1);
+    expect(calcInitiative(2, [], { hasted: true })).toBe(1);
   });
 
   it('enforces minimum 1 when speed and dex push the total to 0 or below', () => {
@@ -84,12 +90,20 @@ describe('calcInitiative', () => {
     expect(calcInitiative(1, [mod('dex_reaction', -3)])).toBe(1); // raw total -2
   });
 
-  it('adds 10 with slow', () => {
-    expect(calcInitiative(5, [mod('slow', 0)])).toBe(15);
+  it('slow negates a Dex bonus', () => {
+    expect(calcInitiative(5, [mod('dex_reaction', -2)])).toBe(3);
+    expect(calcInitiative(5, [mod('dex_reaction', -2)], { slowed: true })).toBe(5);
   });
 
-  it('applies haste before slow: 10 → ÷2=5 → +10=15', () => {
-    expect(calcInitiative(10, [mod('haste', 0), mod('slow', 0)])).toBe(15);
+  it('slow leaves a Dex penalty and other modifiers alone', () => {
+    expect(calcInitiative(5, [mod('dex_reaction', 2)], { slowed: true })).toBe(7);
+    expect(calcInitiative(5, [mod('weapon_speed', 3), mod('other', -1)], { slowed: true })).toBe(7);
+  });
+
+  it('haste and slow cancel each other', () => {
+    const mods = [mod('weapon_speed', 3), mod('dex_reaction', -2)];
+    expect(speedEffect({ hasted: true, slowed: true })).toBeNull();
+    expect(calcInitiative(5, mods, { hasted: true, slowed: true })).toBe(calcInitiative(5, mods));
   });
 
   it('stacks multiple linear modifiers', () => {
@@ -97,9 +111,92 @@ describe('calcInitiative', () => {
     expect(calcInitiative(5, [mod('weapon_speed', 3), mod('dex_reaction', -2)])).toBe(6);
   });
 
-  it('haste applied after all linear modifiers', () => {
-    // 5 + 3 (weapon) = 8 → haste → floor(8/2) = 4
-    expect(calcInitiative(5, [mod('weapon_speed', 3), mod('haste', 0)])).toBe(4);
+  it('haste stacks with a Dex bonus', () => {
+    // 6 + 4 (weapon) - 1 (dex) - 2 (haste) = 7
+    expect(calcInitiative(6, [mod('weapon_speed', 4), mod('dex_reaction', -1)], { hasted: true })).toBe(7);
+  });
+});
+
+describe('speedEffect', () => {
+  it('reports the single effect in force', () => {
+    expect(speedEffect({})).toBeNull();
+    expect(speedEffect({ hasted: true })).toBe('hasted');
+    expect(speedEffect({ slowed: true })).toBe('slowed');
+  });
+});
+
+describe('initiativeParts and describeInitiative', () => {
+  it('lists haste as its own part', () => {
+    const parts = initiativeParts([mod('weapon_speed', 3, 'Sword')], { hasted: true });
+    expect(parts).toEqual([
+      { label: 'Sword', value: 3 },
+      { label: 'Haste', value: -2 },
+    ]);
+  });
+
+  it('marks a Dex bonus as ignored under slow, but not a penalty', () => {
+    const bonus = initiativeParts([mod('dex_reaction', -2, 'Dex')], { slowed: true });
+    expect(bonus).toEqual([{ label: 'Dex', value: -2, ignored: true }]);
+    const penalty = initiativeParts([mod('dex_reaction', 1, 'Dex')], { slowed: true });
+    expect(penalty).toEqual([{ label: 'Dex', value: 1 }]);
+  });
+
+  it('writes the sum out, leaving negated parts out of it', () => {
+    const mods = [mod('weapon_speed', 3, 'Sword'), mod('dex_reaction', -2, 'Dex')];
+    expect(describeInitiative(5, mods)).toBe('5 +3 -2 = 6');
+    expect(describeInitiative(5, mods, { hasted: true })).toBe('5 +3 -2 -2 = 4');
+    expect(describeInitiative(5, mods, { slowed: true })).toBe('5 +3 (-2 negated) = 8');
+  });
+});
+
+describe('adjustments', () => {
+  it('standingAdjustments picks out Dex and other modifiers only', () => {
+    const mods = [mod('weapon_speed', 3, 'Sword'), mod('dex_reaction', -2, 'Dex'), mod('other', 1, 'Ring')];
+    expect(standingAdjustments(mods)).toEqual([
+      { kind: 'dex_reaction', label: 'Dex', value: -2 },
+      { kind: 'other', label: 'Ring', value: 1 },
+    ]);
+  });
+
+  it('cleanAdjustments drops anything malformed', () => {
+    expect(cleanAdjustments(undefined)).toEqual([]);
+    expect(cleanAdjustments('x')).toEqual([]);
+    const out = cleanAdjustments([
+      { kind: 'dex_reaction', label: '  Dex  ', value: -2 },
+      { kind: 'weapon_speed', label: 'Sword', value: 3 }, // not an adjustment kind
+      { kind: 'other', label: 'Big', value: 31 }, // out of range
+      { kind: 'other', label: 'Half', value: 1.5 }, // not whole
+      { kind: 'other', label: 'Str', value: '2' }, // not a number
+      null,
+      { kind: 'other', value: 1 }, // label falls back
+    ]);
+    expect(out).toEqual([
+      { kind: 'dex_reaction', label: 'Dex', value: -2 },
+      { kind: 'other', label: 'Other', value: 1 },
+    ]);
+  });
+
+  it('cleanAdjustments caps the count and label length', () => {
+    const many = Array.from({ length: 9 }, () => ({ kind: 'other', label: 'x'.repeat(80), value: 1 }));
+    const out = cleanAdjustments(many);
+    expect(out).toHaveLength(6);
+    expect(out[0].label).toHaveLength(40);
+  });
+
+  it('applyDeclaredAdjustments replaces Dex/other and keeps the weapon', () => {
+    const mods = [mod('weapon_speed', 3, 'Sword'), mod('dex_reaction', -2, 'Dex'), mod('other', 1, 'Ring')];
+    let n = 0;
+    const out = applyDeclaredAdjustments(mods, [{ kind: 'dex_reaction', label: 'Dex', value: -1 }], () => `n${++n}`);
+    expect(out.map((m) => [m.kind, m.value])).toEqual([
+      ['weapon_speed', 3],
+      ['dex_reaction', -1],
+    ]);
+    expect(out[1].id).toBe('n1');
+  });
+
+  it('applyDeclaredAdjustments with an empty list clears them', () => {
+    const out = applyDeclaredAdjustments([mod('dex_reaction', -2), mod('other', 1)], [], () => 'z');
+    expect(out).toEqual([]);
   });
 });
 
@@ -266,14 +363,6 @@ describe('describeModifiers', () => {
     expect(describeModifiers([])).toBe('None');
   });
 
-  it('formats haste as "Haste ÷2"', () => {
-    expect(describeModifiers([mod('haste', 0, 'Haste')])).toBe('Haste (Haste ÷2)');
-  });
-
-  it('formats slow as "Slow +10"', () => {
-    expect(describeModifiers([mod('slow', 0, 'Slow')])).toBe('Slow (Slow +10)');
-  });
-
   it('formats positive modifiers with a + prefix', () => {
     expect(describeModifiers([mod('weapon_speed', 3, 'Sword')])).toBe('Sword (+3)');
   });
@@ -298,7 +387,7 @@ describe('netModifierOffset', () => {
     expect(netModifierOffset([])).toBe(0);
   });
 
-  it('sums weapon_speed, spell_casting, other, and dex_reaction', () => {
+  it('sums every modifier', () => {
     expect(
       netModifierOffset([
         mod('weapon_speed', 3),
@@ -306,16 +395,6 @@ describe('netModifierOffset', () => {
         mod('other', 1),
       ]),
     ).toBe(2);
-  });
-
-  it('excludes haste and slow from the sum', () => {
-    expect(
-      netModifierOffset([
-        mod('weapon_speed', 3),
-        mod('haste', 0),
-        mod('slow', 0),
-      ]),
-    ).toBe(3);
   });
 
   it('returns a negative sum when dex bonuses dominate', () => {

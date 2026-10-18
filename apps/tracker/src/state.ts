@@ -1,11 +1,15 @@
 import type { AppState, Combatant, LootResult, SessionLoot } from './types.ts';
 import {
   applyDeclaredAction,
+  applyDeclaredAdjustments,
   calcInitiative,
+  cleanAdjustments,
+  migrateCombatant,
   canActThisRound,
   firstActiveSegment,
   maxInitiativeSegment,
   rollD10,
+  type DeclaredAdjustment,
   type DeclaredKind,
 } from './combat.ts';
 import { generateLoot } from './data/loot.ts';
@@ -47,13 +51,13 @@ function loadPersistedState(): AppState {
     const parsed = JSON.parse(raw) as Partial<AppState>;
     if (!parsed.phase || !Array.isArray(parsed.combatants)) return structuredClone(initialState);
     // Migrate: ensure fields added after initial release exist in old saves
-    const combatants: Combatant[] = parsed.combatants.map((c) => ({
+    const combatants: Combatant[] = parsed.combatants.map((c) => migrateCombatant({
       ...c,
       prevInitiative: c.prevInitiative ?? null,
       isHorsDeCombat: (c.isHorsDeCombat as boolean | undefined) ?? false,
       atRange: (c.atRange as boolean | undefined) ?? false,
       targetId: (c.targetId as string | null | undefined) ?? null,
-    }));
+    }, parsed.phase === 'initiative'));
     return {
       ...structuredClone(initialState),
       ...parsed,
@@ -143,6 +147,24 @@ export function updateCombatantSilent(id: string, patch: Partial<Combatant>): vo
   onPublish?.();
 }
 
+/**
+ * Set or clear a combatant's haste or slow. If they already have a roll this round, the total is
+ * recomputed so the segment they act on follows the spell.
+ */
+export function setSpeedStatus(id: string, patch: { hasted?: boolean; slowed?: boolean }): void {
+  state = {
+    ...state,
+    combatants: state.combatants.map((c) => {
+      if (c.id !== id) return c;
+      const next = { ...c, ...patch };
+      return c.d10Roll !== null
+        ? { ...next, totalInitiative: calcInitiative(c.d10Roll, next.modifiers, next) }
+        : next;
+    }),
+  };
+  notify();
+}
+
 export function removeCombatant(id: string): void {
   state = {
     ...state,
@@ -199,13 +221,13 @@ export function applyHealing(id: string, amount: number): void {
 /** Replace the entire app state (used for JSON import). */
 export function importState(newState: AppState): void {
   // Migrate: ensure fields added after initial release exist in imported files
-  const combatants: Combatant[] = newState.combatants.map((c) => ({
+  const combatants: Combatant[] = newState.combatants.map((c) => migrateCombatant({
     ...c,
     prevInitiative: c.prevInitiative ?? null,
     isHorsDeCombat: (c.isHorsDeCombat as boolean | undefined) ?? false,
     atRange: (c.atRange as boolean | undefined) ?? false,
     targetId: (c.targetId as string | null | undefined) ?? null,
-  }));
+  }, newState.phase === 'initiative'));
   state = {
     ...newState,
     combatants,
@@ -220,7 +242,7 @@ function withAutoRolledMonsters(combatants: Combatant[]): Combatant[] {
   return combatants.map((c) => {
     if (c.isActive && c.type !== 'player') {
       const roll = rollD10();
-      const total = calcInitiative(roll, c.modifiers);
+      const total = calcInitiative(roll, c.modifiers, c);
       return { ...c, d10Roll: roll, totalInitiative: total };
     }
     return c;
@@ -323,6 +345,13 @@ export interface RemoteDeclaration {
   label: string;
   value: number;
   d10: number;
+  /**
+   * The player's own Dexterity and miscellaneous adjustments, the whole list. Absent from a
+   * declaration made before this existed, in which case the DM's list stands.
+   */
+  adjustments?: DeclaredAdjustment[];
+  hasted?: boolean;
+  slowed?: boolean;
 }
 
 /**
@@ -347,14 +376,23 @@ export function applyDeclarations(
     if (!d || c.type !== 'player' || c.d10Roll !== null) return c;
     if (!canActThisRound(c, state.inSurprisePhase)) return c;
     if (!Number.isInteger(d.d10) || d.d10 < 1 || d.d10 > 10) return c;
-    const modifiers = applyDeclaredAction(c.modifiers, d, newId());
+    let modifiers = applyDeclaredAction(c.modifiers, d, newId());
+    if (Array.isArray(d.adjustments)) {
+      modifiers = applyDeclaredAdjustments(modifiers, cleanAdjustments(d.adjustments), newId);
+    }
+    // The server sends null for what a declaration did not carry; only a real boolean changes the status.
+    const hasted = typeof d.hasted === 'boolean' ? d.hasted : c.hasted;
+    const slowed = typeof d.slowed === 'boolean' ? d.slowed : c.slowed;
+    const status = { hasted, slowed };
     applied.push(c.id);
     return {
       ...c,
       action: d.label.trim() || c.action,
       modifiers,
+      ...(typeof d.hasted === 'boolean' ? { hasted } : {}),
+      ...(typeof d.slowed === 'boolean' ? { slowed } : {}),
       d10Roll: d.d10,
-      totalInitiative: calcInitiative(d.d10, modifiers),
+      totalInitiative: calcInitiative(d.d10, modifiers, status),
     };
   });
 

@@ -4,8 +4,6 @@ export type ModifierKind =
   | 'weapon_speed'
   | 'spell_casting'
   | 'dex_reaction'
-  | 'haste'
-  | 'slow'
   | 'other';
 
 export interface Modifier {
@@ -31,9 +29,15 @@ export interface Combatant {
   currentHp: number | null;
   /** Standing modifiers that always apply (weapon, dex, etc.). */
   modifiers: Modifier[];
+  /**
+   * Under a haste spell: -2 initiative. Under slow: Dexterity reaction bonuses are negated.
+   * They cancel each other out, so a combatant with both flags set is neither.
+   */
+  hasted?: boolean;
+  slowed?: boolean;
   /** The physical d10 result entered by the DM this round. */
   d10Roll: number | null;
-  /** Computed: d10 + modifier sum, after haste/slow. */
+  /** Computed: d10 + modifier sum, after the haste and slow effects. */
   totalInitiative: number | null;
   /** Surprised combatants skip the surprise segments. */
   isSurprised: boolean;

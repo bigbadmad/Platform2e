@@ -2,6 +2,7 @@ import type { RemoteDeclaration } from '../state.ts';
 import type { DmSession } from './session.ts';
 import { startPoller } from './poller.ts';
 import { getClient } from './supabase.ts';
+import { cleanAdjustments } from '../combat.ts';
 
 const POLL_INTERVAL_MS = 2500;
 const TOTALS_DEBOUNCE_MS = 300;
@@ -23,7 +24,20 @@ export async function fetchDeclarations(
     p_round: target.round,
   });
   if (error) throw error;
-  return (data ?? []) as RemoteDeclaration[];
+  return ((data ?? []) as Array<RemoteDeclaration & { adjustments: unknown; hasted: unknown; slowed: unknown }>).map(
+    (d) => ({
+      combatantId: d.combatantId,
+      kind: d.kind,
+      label: d.label,
+      value: d.value,
+      d10: d.d10,
+      // The server sends null for what a declaration did not carry. Left undefined, the DM's own
+      // modifiers stand; an empty list is different (the player cleared them).
+      ...(Array.isArray(d.adjustments) ? { adjustments: cleanAdjustments(d.adjustments) } : {}),
+      ...(typeof d.hasted === 'boolean' ? { hasted: d.hasted } : {}),
+      ...(typeof d.slowed === 'boolean' ? { slowed: d.slowed } : {}),
+    }),
+  );
 }
 
 async function pushTotals(

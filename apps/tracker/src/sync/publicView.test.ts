@@ -123,22 +123,39 @@ describe('toPublicView', () => {
     expect(toPublicView(makeState([labelOnly])).players[0].action).toBeNull();
   });
 
-  it('never publishes dex, haste or slow, even though they sit beside the weapon', () => {
+  it('publishes a player\'s Dex and other adjustments and speed status, but not the totals', () => {
     const rogue = makeCombatant({
       id: 'p6',
       name: 'Rogue',
+      hasted: true,
       modifiers: [
         { id: 'w', kind: 'weapon_speed', value: 2, label: 'Dagger' },
         { id: 'd', kind: 'dex_reaction', value: -3, label: 'Dex 18' },
-        { id: 'h', kind: 'haste', value: 0, label: 'Hasted' },
-        { id: 's', kind: 'slow', value: 0, label: 'Slowed' },
+        { id: 'o', kind: 'other', value: 1, label: 'Ring' },
       ],
     });
-    const json = JSON.stringify(toPublicView(makeState([rogue])));
-    for (const hidden of ['Dex 18', 'Hasted', 'Slowed', 'dex_reaction', '"haste"', '"slow"', '-3']) {
+    const p = toPublicView(makeState([rogue])).players[0];
+    expect(p.adjustments).toEqual([
+      { kind: 'dex_reaction', label: 'Dex 18', value: -3 },
+      { kind: 'other', label: 'Ring', value: 1 },
+    ]);
+    expect(p.hasted).toBe(true);
+    expect(p.slowed).toBe(false);
+    expect(p.action).toEqual({ kind: 'weapon_speed', label: 'Dagger', value: 2 });
+  });
+
+  it('never publishes a monster\'s modifiers or speed status', () => {
+    const ogre = makeCombatant({
+      id: 'm1',
+      name: 'Ogre',
+      type: 'monster',
+      hasted: true,
+      modifiers: [{ id: 'd', kind: 'dex_reaction', value: -3, label: 'Ogre Dex' }],
+    });
+    const json = JSON.stringify(toPublicView(makeState([ogre])));
+    for (const hidden of ['Ogre', 'Ogre Dex', 'dex_reaction', 'hasted']) {
       expect(json).not.toContain(hidden);
     }
-    expect(json).toContain('Dagger');
   });
 
   it('leaks no private monster or initiative data', () => {

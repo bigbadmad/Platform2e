@@ -16,8 +16,10 @@ import {
   reorderCombatants,
   importState,
   clearSession,
+  setSpeedStatus,
 } from '../state.ts';
 import { el, uid, chip, fmtSign, iconBtn, faIcon } from './components.ts';
+import { speedChipText, speedToggles } from './speedToggles.ts';
 
 // -- Modifier form data --------------------------------------------------------
 
@@ -25,13 +27,8 @@ const MOD_KIND_LABELS: Record<ModifierKind, string> = {
   weapon_speed: 'Weapon Speed',
   spell_casting: 'Spell Casting Time',
   dex_reaction: 'Dex Reaction Adj',
-  haste: 'Haste',
-  slow: 'Slow',
   other: 'Other',
 };
-
-// Kinds that have no numeric value (they're flags)
-const VALUELESS_KINDS: ModifierKind[] = ['haste', 'slow'];
 
 // -- Drag state ---------------------------------------------------------------
 
@@ -459,11 +456,10 @@ function buildCombatantRow(c: Combatant, onUpdate: () => void): HTMLElement {
 
   const modChips = el('div', { cls: 'mod-chips' });
   c.modifiers.forEach((m) => {
-    const label = VALUELESS_KINDS.includes(m.kind)
-      ? m.label
-      : `${m.label}: ${fmtSign(m.value)}`;
-    modChips.appendChild(chip(label, `mod-${m.kind}`));
+    modChips.appendChild(chip(`${m.label}: ${fmtSign(m.value)}`, `mod-${m.kind}`));
   });
+  const speedText = speedChipText(c);
+  if (speedText) modChips.appendChild(chip(speedText, c.hasted && !c.slowed ? 'mod-haste' : 'mod-slow'));
   info.appendChild(modChips);
 
   mainRow.appendChild(info);
@@ -590,10 +586,7 @@ function buildEditPanel(c: Combatant): HTMLElement {
   const modList = el('div', { cls: 'mod-list' });
   c.modifiers.forEach((m) => {
     const modRow = el('div', { cls: 'mod-row' });
-    const desc = VALUELESS_KINDS.includes(m.kind)
-      ? m.label
-      : `${m.label}: ${fmtSign(m.value)}`;
-    modRow.appendChild(el('span', { text: desc }));
+    modRow.appendChild(el('span', { text: `${m.label}: ${fmtSign(m.value)}` }));
     modRow.appendChild(
       iconBtn('fa-solid fa-xmark', '', 'btn btn-remove-sm', () => {
         updateCombatant(c.id, { modifiers: c.modifiers.filter((x) => x.id !== m.id) });
@@ -619,12 +612,6 @@ function buildEditPanel(c: Combatant): HTMLElement {
   }) as HTMLInputElement;
   epValueInput.value = '0';
 
-  function updateValVis() {
-    epValueInput.style.display = VALUELESS_KINDS.includes(epKindSelect.value as ModifierKind) ? 'none' : '';
-  }
-  epKindSelect.addEventListener('change', updateValVis);
-  updateValVis();
-
   addModForm.append(
     epKindSelect,
     epLabelInput,
@@ -632,7 +619,7 @@ function buildEditPanel(c: Combatant): HTMLElement {
     iconBtn('fa-solid fa-plus', '', 'btn btn-secondary btn-add-mod', () => {
       const kind = epKindSelect.value as ModifierKind;
       const label = epLabelInput.value.trim() || MOD_KIND_LABELS[kind];
-      const value = VALUELESS_KINDS.includes(kind) ? 0 : parseInt(epValueInput.value, 10) || 0;
+      const value = parseInt(epValueInput.value, 10) || 0;
       updateCombatant(c.id, {
         modifiers: [...c.modifiers, { id: uid(), kind, value, label }],
       });
@@ -640,6 +627,7 @@ function buildEditPanel(c: Combatant): HTMLElement {
   );
 
   modSection.appendChild(addModForm);
+  modSection.appendChild(speedToggles(c, (status) => setSpeedStatus(c.id, status)));
   panel.appendChild(modSection);
 
   return panel;
@@ -745,10 +733,7 @@ function buildAddForm(type: CombatantType, onAdd: () => void): HTMLElement {
     modListEl.innerHTML = '';
     mods.forEach((m, i) => {
       const row = el('div', { cls: 'mod-row' });
-      const desc = VALUELESS_KINDS.includes(m.kind)
-        ? m.label
-        : `${m.label}: ${fmtSign(m.value)}`;
-      row.appendChild(el('span', { text: desc }));
+      row.appendChild(el('span', { text: `${m.label}: ${fmtSign(m.value)}` }));
       row.appendChild(
         iconBtn('fa-solid fa-xmark', '', 'btn btn-remove-sm', () => {
           mods.splice(i, 1);
@@ -777,21 +762,10 @@ function buildAddForm(type: CombatantType, onAdd: () => void): HTMLElement {
   }) as HTMLInputElement;
   modValueInput.value = '0';
 
-  // Hide value input for valueless kinds
-  function updateValueVisibility() {
-    modValueInput.style.display = VALUELESS_KINDS.includes(
-      kindSelect.value as ModifierKind,
-    )
-      ? 'none'
-      : '';
-  }
-  kindSelect.addEventListener('change', updateValueVisibility);
-  updateValueVisibility();
-
   const addModBtn = iconBtn('fa-solid fa-plus', '', 'btn btn-secondary btn-add-mod', () => {
     const kind = kindSelect.value as ModifierKind;
     const label = modLabelInput.value.trim() || MOD_KIND_LABELS[kind];
-    const value = VALUELESS_KINDS.includes(kind) ? 0 : parseInt(modValueInput.value, 10) || 0;
+    const value = parseInt(modValueInput.value, 10) || 0;
     mods.push({ id: uid(), kind, value, label });
     modLabelInput.value = '';
     modValueInput.value = '0';
@@ -800,6 +774,9 @@ function buildAddForm(type: CombatantType, onAdd: () => void): HTMLElement {
 
   modForm.append(kindSelect, modLabelInput, modValueInput, addModBtn);
   card.appendChild(modForm);
+
+  const speed = { hasted: false, slowed: false };
+  card.appendChild(speedToggles(speed, (status) => Object.assign(speed, status)));
 
   // Submit
   const addBtnIcon = type === 'player' ? 'fa-solid fa-user-plus' : 'fa-solid fa-dragon';
@@ -860,6 +837,8 @@ function buildAddForm(type: CombatantType, onAdd: () => void): HTMLElement {
         targetId: null,
         isActive: true,
         action: '',
+        ...(speed.hasted ? { hasted: true } : {}),
+        ...(speed.slowed ? { slowed: true } : {}),
         // Combat reference stats from the library (displayed in the tracker)
         ...(libTemplate ? {
           ac: libTemplate.ac,
@@ -887,6 +866,8 @@ function buildAddForm(type: CombatantType, onAdd: () => void): HTMLElement {
     if (lootRow) lootRow.style.display = '';
     if (lootInfoEl) { lootInfoEl.style.display = 'none'; lootInfoEl.textContent = ''; }
     mods.length = 0;
+    speed.hasted = false;
+    speed.slowed = false;
     refreshModList();
     onAdd();
   });

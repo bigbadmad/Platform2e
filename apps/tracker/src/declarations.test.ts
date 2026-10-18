@@ -1,17 +1,20 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { applyDeclaredAction, canActThisRound } from './combat.ts';
+import { applyDeclaredAction, canActThisRound, migrateCombatant } from './combat.ts';
 import {
   addCombatant,
   applyDeclarations,
   beginInitiativePhase,
   getState,
+  importState,
   lockInitiative,
   registerRenderer,
   resetEncounter,
+  setSpeedStatus,
   setState,
   startNewRound,
   updateCombatant,
 } from './state.ts';
+import type { RemoteDeclaration } from './state.ts';
 import { toPlayerTotals, toPublicView } from './sync/publicView.ts';
 import {
   declareDefaults,
@@ -52,7 +55,7 @@ const mod = (id: string, kind: Modifier['kind'], value: number, label = kind): M
 
 describe('applyDeclaredAction', () => {
   it('replaces the primary weapon modifier and keeps the standing ones', () => {
-    const mods = [mod('w', 'weapon_speed', 7, 'Sword'), mod('d', 'dex_reaction', -2, 'Dex'), mod('h', 'haste', 0, 'Haste')];
+    const mods = [mod('w', 'weapon_speed', 7, 'Sword'), mod('d', 'dex_reaction', -2, 'Dex'), mod('o', 'other', 1, 'Ring')];
     const out = applyDeclaredAction(mods, { kind: 'spell_casting', label: 'Fireball', value: 3 }, 'new');
     expect(out).toEqual([
       { id: 'w', kind: 'spell_casting', label: 'Fireball', value: 3 },
@@ -115,7 +118,7 @@ describe('encounter id', () => {
 });
 
 describe('applyDeclarations', () => {
-  const decl = (over: Partial<{ combatantId: string; d10: number; value: number; label: string; kind: 'weapon_speed' | 'spell_casting' }> = {}) => ({
+  const decl = (over: Partial<RemoteDeclaration> = {}): RemoteDeclaration => ({
     combatantId: 'p1',
     kind: 'weapon_speed' as const,
     label: 'Long sword',
@@ -145,11 +148,70 @@ describe('applyDeclarations', () => {
 
   it('applies haste held by the DM to a declared action', () => {
     resetEncounter();
-    addCombatant(combatant({ modifiers: [mod('h', 'haste', 0, 'Haste')] }));
+    addCombatant(combatant({ hasted: true }));
     beginInitiativePhase();
     const s = getState();
     applyDeclarations(s.encounterId!, s.roundNumber, [decl({ d10: 6, value: 4 })]);
-    expect(getState().combatants[0].totalInitiative).toBe(5); // floor((6 + 4) / 2)
+    expect(getState().combatants[0].totalInitiative).toBe(8); // 6 + 4 - 2
+  });
+
+  it('applies slow held by the DM, negating the Dex bonus', () => {
+    resetEncounter();
+    addCombatant(combatant({ slowed: true, modifiers: [mod('d', 'dex_reaction', -2, 'Dex')] }));
+    beginInitiativePhase();
+    const s = getState();
+    applyDeclarations(s.encounterId!, s.roundNumber, [decl({ d10: 6, value: 4 })]);
+    expect(getState().combatants[0].totalInitiative).toBe(10);
+  });
+
+  it('replaces the DM\'s Dex and other adjustments with the declared list', () => {
+    const { encounterId, round } = start([]);
+    applyDeclarations(encounterId, round, [
+      decl({ adjustments: [{ kind: 'dex_reaction', label: 'Dex', value: -3 }, { kind: 'other', label: 'Ring', value: 1 }] }),
+    ]);
+    const p = getState().combatants[0];
+    expect(p.modifiers.filter((m) => m.kind !== 'weapon_speed').map((m) => [m.kind, m.value])).toEqual([
+      ['dex_reaction', -3],
+      ['other', 1],
+    ]);
+    expect(p.totalInitiative).toBe(4 + 5 - 3 + 1);
+  });
+
+  it('keeps the DM\'s adjustments when the declaration carries none', () => {
+    const { encounterId, round } = start([]);
+    applyDeclarations(encounterId, round, [decl()]);
+    expect(getState().combatants[0].totalInitiative).toBe(4 + 5 - 1);
+  });
+
+  it('an empty declared list clears the adjustments', () => {
+    const { encounterId, round } = start([]);
+    applyDeclarations(encounterId, round, [decl({ adjustments: [] })]);
+    expect(getState().combatants[0].totalInitiative).toBe(4 + 5);
+  });
+
+  it('ignores malformed declared adjustments', () => {
+    const { encounterId, round } = start([]);
+    applyDeclarations(encounterId, round, [
+      decl({ adjustments: [{ kind: 'weapon_speed', label: 'x', value: 9 }, { kind: 'other', label: 'x', value: 99 }] as never }),
+    ]);
+    expect(getState().combatants[0].totalInitiative).toBe(4 + 5);
+  });
+
+  it('a player can declare haste or slow, and it stays on the combatant', () => {
+    const { encounterId, round } = start([]);
+    applyDeclarations(encounterId, round, [decl({ hasted: true })]);
+    const p = getState().combatants[0];
+    expect(p.hasted).toBe(true);
+    expect(p.totalInitiative).toBe(4 + 5 - 1 - 2);
+  });
+
+  it('leaves the DM\'s haste alone when the declaration does not mention it', () => {
+    resetEncounter();
+    addCombatant(combatant({ hasted: true }));
+    beginInitiativePhase();
+    const s = getState();
+    applyDeclarations(s.encounterId!, s.roundNumber, [decl()]);
+    expect(getState().combatants[0].hasted).toBe(true);
   });
 
   it('never overwrites a roll the DM already entered', () => {
@@ -424,5 +486,67 @@ describe('declareStatus', () => {
     expect(declareErrorMessage('already declared')).toMatch(/already declared/);
     expect(declareErrorMessage('declarations are not open')).toMatch(/not opened/);
     expect(declareErrorMessage('Failed to fetch')).toMatch(/connection/);
+  });
+});
+
+
+describe('haste and slow as statuses', () => {
+  it('setSpeedStatus recomputes the total of a combatant who has rolled', () => {
+    resetEncounter();
+    addCombatant(combatant({ modifiers: [mod('w', 'weapon_speed', 5, 'Sword')] }));
+    beginInitiativePhase();
+    updateCombatant('p1', { d10Roll: 4, totalInitiative: 9 });
+    setSpeedStatus('p1', { hasted: true });
+    expect(getState().combatants[0].totalInitiative).toBe(7);
+    setSpeedStatus('p1', { hasted: false });
+    expect(getState().combatants[0].totalInitiative).toBe(9);
+  });
+
+  it('setSpeedStatus before a roll just sets the flag', () => {
+    resetEncounter();
+    addCombatant(combatant({}));
+    setSpeedStatus('p1', { slowed: true });
+    const c = getState().combatants[0];
+    expect(c.slowed).toBe(true);
+    expect(c.totalInitiative).toBeNull();
+  });
+
+  it('migrateCombatant turns old haste and slow modifiers into flags and keeps the totals', () => {
+    const old = combatant({
+      d10Roll: 6,
+      totalInitiative: 5,
+      modifiers: [mod('w', 'weapon_speed', 4, 'Sword'), mod('h', 'haste' as never, 0, 'Haste')],
+    });
+    const out = migrateCombatant(old);
+    expect(out.hasted).toBe(true);
+    expect(out.slowed).toBeFalsy();
+    expect(out.modifiers.map((m) => m.id)).toEqual(['w']);
+    expect(out.totalInitiative).toBe(5);
+  });
+
+  it('migrateCombatant can recompute a roll still being collected, but not a sentinel', () => {
+    const old = (total: number) => combatant({
+      d10Roll: 6,
+      totalInitiative: total,
+      modifiers: [mod('w', 'weapon_speed', 4, 'Sword'), mod('h', 'haste' as never, 0, 'Haste')],
+    });
+    expect(migrateCombatant(old(5), true).totalInitiative).toBe(8); // 6 + 4 - 2
+    expect(migrateCombatant(old(99), true).totalInitiative).toBe(99);
+  });
+
+  it('migrateCombatant leaves a current combatant as it is', () => {
+    const c = combatant({ hasted: true, modifiers: [mod('d', 'dex_reaction', -1)] });
+    expect(migrateCombatant(c)).toBe(c);
+  });
+
+  it('importing an old export converts its haste and slow modifiers', () => {
+    resetEncounter();
+    const old = combatant({
+      modifiers: [mod('s', 'slow' as never, 0, 'Slow')],
+    });
+    importState({ ...getState(), combatants: [old] });
+    const c = getState().combatants[0];
+    expect(c.slowed).toBe(true);
+    expect(c.modifiers).toEqual([]);
   });
 });
