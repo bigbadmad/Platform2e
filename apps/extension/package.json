@@ -1,0 +1,19 @@
+{
+  "name": "@platform2e/extension",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Chrome side panel for players: the tracker's player page, packaged as an extension",
+  "type": "module",
+  "scripts": {
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit && vite build",
+    "package": "npm run build && cd dist && zip -qr ../platform2e-initiative.zip ."
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^6.7.2",
+    "@platform2e/dice": "*",
+    "@platform2e/ui": "*",
+    "@supabase/supabase-js": "^2.117.3"
+  }
+}

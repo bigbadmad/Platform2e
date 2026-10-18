@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Platform2e Initiative",
+  "version": "0.1.0",
+  "description": "Join your DM's AD&D 2e session from a side panel: declare your action and follow the segments.",
+  "action": { "default_title": "Open the initiative panel" },
+  "side_panel": { "default_path": "panel.html" },
+  "background": { "service_worker": "background.js" },
+  "permissions": ["sidePanel"],
+  "icons": { "16": "icon-16.png", "48": "icon-48.png", "128": "icon-128.png" }
+}
