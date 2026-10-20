@@ -9,7 +9,7 @@ A browser-based AD&D 2nd Edition character generator with ability score rollers 
   - `data.ts` game tables and constants
   - dice come from the shared `@platform2e/dice` package (crypto-backed)
   - `statCalc.ts`, `multiclass.ts` derived stats and multiclass rules
-  - `exporter.ts` Excel character sheet export (uses SheetJS from a CDN script tag)
+  - `exporter.ts` Excel character sheet export (uses SheetJS from npm, loaded on the first export)
   - `generator.ts` main logic class
   - `main.ts` app bootstrap and DOM wiring
 - `tests/` Vitest suites (jsdom)

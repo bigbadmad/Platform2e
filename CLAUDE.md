@@ -4,7 +4,7 @@ Monorepo of three vanilla TypeScript + Vite apps for AD&D 2e DMs. No UI framewor
 
 ## Layout
 
-- `apps/character` character generator (browser only, Excel export through a SheetJS CDN script)
+- `apps/character` character generator (browser only, Excel export through SheetJS, imported from npm on first export)
 - `apps/dungeon` seeded dungeon generator (browser only)
 - `apps/tracker` initiative tracker, with a Supabase backend for online play (see `apps/tracker/CLAUDE.md`)
 - `apps/web` launcher page for the whole site
@@ -40,6 +40,7 @@ One site: `netlify.toml` at the repo root runs `npm run build:site` and publishe
 - Every page registers help with `registerHelp` (from `packages/ui`), with its text in the app's `src/help.ts`. Topics are written only from behaviour you have checked in the code. The tracker's topic keys are its phases and `main.ts` switches topic with the phase, so a new phase needs a help topic (a test enforces it). Help is plain text, never markup.
 - Usage events are declared in `packages/analytics/src/events.ts` and sent with `track(name, props)`. Add the event there first. Never put a name, code, seed or anything typed by a user in a property, and send counts through `countBucket`.
 - All dice and random picks go through `@platform2e/dice`. Pass an `Rng` where a test or a seeded feature needs determinism. `Math.random()` is only for non-gameplay needs such as DOM ids.
+- No third-party scripts or stylesheets are loaded from a CDN. The tools share one origin, so a compromised CDN file could read the tracker's DM secret from localStorage. Add libraries through npm and let Vite bundle them. The only external script is the analytics provider, and only when configured.
 - `.npmrc` has `legacy-peer-deps=true` on purpose. See README.
 
 ## Planned direction

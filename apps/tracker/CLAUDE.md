@@ -10,7 +10,7 @@ It can also run an **online session** (see "Online Play" below): players join fr
 
 - **Language**: TypeScript (strict mode — `noUnusedLocals`, `noUnusedParameters`)
 - **Build**: Vite 6 + `tsc`, two HTML entry points (`index.html` DM app, `play.html` player app)
-- **Styling**: Vanilla CSS + Font Awesome 6 (CDN in `index.html`)
+- **Styling**: Vanilla CSS + Font Awesome 6 Free (npm, solid style only, imported in `main.ts` and `player/main.ts`). Use `fa-solid` classes; the regular and brands styles are not bundled.
 - **Icons**: `faIcon(cls)` and `iconBtn(iconCls, label, cls, onClick, ariaLabel?)` helpers in `ui/components.ts`
 - **Framework**: None — pure DOM manipulation
 - **Backend (online play only)**: Supabase (Postgres + Realtime + anonymous auth), `@supabase/supabase-js`. Hosted on Netlify (Node 22, see `netlify.toml`).
@@ -192,7 +192,8 @@ Segments start at 1, so a total of 0 or less would never come up. Lower total ac
 - **Unit tests** (`npm test`) mock the Supabase client and use fake timers. Module-level sync state means tests `vi.resetModules()` and re-import.
 - **Live smoke tests**: `supabase/smoke/declarations.cjs` (migrations 0005–0006 and 0008) and `supabase/smoke/segment-done.cjs` (0007) run against the real project from `.env.local`. Each leaves one closed test session behind and uses two anonymous sign-ins (Supabase rate-limits those per IP, so don't loop them). Run the matching one after applying a migration, before deploying.
 - **Realtime**: `SUBSCRIBED` fires before the server-side subscription is live. Tests must wait several seconds after it, and clients re-read once on `SUBSCRIBED` to close the gap (see `subscribeToView`, `subscribeToMyDeclarations`).
-- `supabase/maintenance/cleanup_sessions.sql` removes old test sessions; run it in the SQL editor.
+- `supabase/maintenance/cleanup_sessions.sql` previews and removes old sessions; run it in the SQL editor. `schedule_cleanup.sql` registers the same delete as a daily `pg_cron` job (run once, by hand; needs the pg_cron extension).
+- **Abuse limits**: `create_session` and `publish_view` are callable by anyone with the anon key. `publish_view` rejects a view over 100,000 bytes (`view too large`, migration 0009), and the client treats that as final rather than retrying. There is no per-IP rate limit; turn on CAPTCHA for anonymous sign-ins in the Supabase dashboard if sessions get spammed.
 
 ### Gotchas
 - A change that arrives over the network must call `notify({ remote: true })` so `main.ts` holds the render until `dmIsMidEdit()` is false. A plain `notify()` rebuilds the screen under the DM's cursor.

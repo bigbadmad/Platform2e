@@ -100,7 +100,7 @@ export function nextRevision(last: number, now: number): number {
 
 /** Errors a retry cannot fix; everything else (network, 5xx) is retried with backoff. */
 export function isPermanentPublishError(message: string): boolean {
-  return /session closed|invalid session/i.test(message);
+  return /session closed|invalid session|view too large/i.test(message);
 }
 
 /**

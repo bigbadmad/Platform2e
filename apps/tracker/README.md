@@ -12,7 +12,7 @@ npm run preview    # preview the production build
 npm test           # run test suite
 ```
 
-> **Note:** The app requires an internet connection on first load to fetch Font Awesome icons from the CDN. Subsequent loads use the browser cache.
+> **Note:** Font Awesome icons are bundled with the app, so the offline tracker needs no network after the page has loaded.
 
 ---
 

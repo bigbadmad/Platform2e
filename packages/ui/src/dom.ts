@@ -1,10 +1,12 @@
-/** Create an element with optional class names, text, HTML and attributes. */
+/**
+ * Create an element with optional class names, text and attributes. There is no HTML option on purpose:
+ * names and codes typed by other people reach the page through this helper, so text is always text.
+ */
 export function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   opts: {
     cls?: string | string[];
     text?: string;
-    html?: string;
     attrs?: Record<string, string>;
   } = {},
 ): HTMLElementTagNameMap[K] {
@@ -16,7 +18,6 @@ export function el<K extends keyof HTMLElementTagNameMap>(
     elem.classList.add(...classes);
   }
   if (opts.text !== undefined) elem.textContent = opts.text;
-  if (opts.html !== undefined) elem.innerHTML = opts.html;
   if (opts.attrs) {
     for (const [k, v] of Object.entries(opts.attrs)) {
       elem.setAttribute(k, v);

@@ -1,4 +1,6 @@
 import '@platform2e/ui/tokens.css';
+import '@fortawesome/fontawesome-free/css/fontawesome.min.css';
+import '@fortawesome/fontawesome-free/css/solid.min.css';
 import './styles.css';
 import { initAnalytics, track } from '@platform2e/analytics';
 import { mountPlatformBar, registerHelp, setHelpTopic } from '@platform2e/ui';
