@@ -6,3 +6,15 @@
 
 [build.environment]
   NODE_VERSION = "22"
+
+# Security headers for every page. No script or connect rules here on purpose: the analytics host is
+# chosen per build and the Supabase address is an environment variable, so a script-src would have to
+# be generated at build time. These directives restrict nothing the apps currently use.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "DENY"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"
+    Content-Security-Policy = "object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"

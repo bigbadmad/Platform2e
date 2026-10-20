@@ -1,4 +1,6 @@
 import '@platform2e/ui/tokens.css';
+import '@fortawesome/fontawesome-free/css/fontawesome.min.css';
+import '@fortawesome/fontawesome-free/css/solid.min.css';
 import '../styles.css';
 import { initAnalytics } from '@platform2e/analytics';
 import type { PublicView } from '../sync/publicView.ts';

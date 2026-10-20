@@ -14,7 +14,7 @@ declare global {
     setAlignment: (ddl: HTMLSelectElement) => void;
     noRollType: () => void;
     rollerType: () => void;
-    exportSheet: () => void;
+    exportSheet: () => Promise<void>;
     updateThiefSkills: () => void;
     updateBardSkills: () => void;
   }

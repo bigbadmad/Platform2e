@@ -1,6 +1,3 @@
-// SheetJS is loaded via CDN script tag in index.html
-declare const XLSX: any;
-
 export interface CharacterData {
   className: string;
   level: string;
@@ -168,7 +165,9 @@ export function buildSheetData(d: CharacterData): (string | number)[][] {
   return aoa;
 }
 
-export function exportCharacterSheet(d: CharacterData): void {
+/** SheetJS is a sizeable library, so it is fetched on the first export rather than with the page. */
+export async function exportCharacterSheet(d: CharacterData): Promise<void> {
+  const XLSX = await import('xlsx');
   const aoa = buildSheetData(d);
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   const wb = XLSX.utils.book_new();

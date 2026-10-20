@@ -29,7 +29,8 @@ describe('btn and mount', () => {
   });
 
   it('mount replaces whatever the container held', () => {
-    const box = el('div', { html: '<span>old</span><span>older</span>' });
+    const box = el('div');
+    box.append(el('span', { text: 'old' }), el('span', { text: 'older' }));
     const child = el('em', { text: 'new' });
     mount(box, child);
     expect(box.children).toHaveLength(1);

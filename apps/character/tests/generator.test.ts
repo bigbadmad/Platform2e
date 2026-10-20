@@ -6,16 +6,6 @@ import { Generator } from '../src/generator.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Minimal XLSX mock so exportSheet doesn't throw
-globalThis.XLSX = {
-  utils: {
-    aoa_to_sheet: vi.fn(() => ({})),
-    book_new:     vi.fn(() => ({})),
-    book_append_sheet: vi.fn(),
-  },
-  writeFile: vi.fn(),
-};
-
 function setupDom() {
   const html = readFileSync(join(__dirname, '../index.html'), 'utf8');
   document.documentElement.innerHTML = html;

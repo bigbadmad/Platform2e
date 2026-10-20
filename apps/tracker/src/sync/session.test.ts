@@ -21,6 +21,10 @@ describe('isPermanentPublishError', () => {
     expect(isPermanentPublishError('invalid session or secret')).toBe(true);
   });
 
+  it('treats an oversized view as final, since resending the same view cannot succeed', () => {
+    expect(isPermanentPublishError('view too large')).toBe(true);
+  });
+
   it('retries network and server errors', () => {
     expect(isPermanentPublishError('Failed to fetch')).toBe(false);
     expect(isPermanentPublishError('upstream request timeout')).toBe(false);

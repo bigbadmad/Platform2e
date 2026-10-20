@@ -17,6 +17,7 @@
   "dependencies": {
     "@platform2e/analytics": "*",
     "@platform2e/dice": "*",
-    "@platform2e/ui": "*"
+    "@platform2e/ui": "*",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   }
 }

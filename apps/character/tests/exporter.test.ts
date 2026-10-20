@@ -1,6 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cv, buildSheetData, exportCharacterSheet, CharacterData } from '../src/exporter.js';
 
+const { mockWriteFile, mockAoaToSheet, mockBookNew, mockBookAppendSheet } = vi.hoisted(() => ({
+  mockWriteFile: vi.fn(),
+  mockAoaToSheet: vi.fn().mockReturnValue({}),
+  mockBookNew: vi.fn().mockReturnValue({}),
+  mockBookAppendSheet: vi.fn(),
+}));
+
+vi.mock('xlsx', () => ({
+  utils: { aoa_to_sheet: mockAoaToSheet, book_new: mockBookNew, book_append_sheet: mockBookAppendSheet },
+  writeFile: mockWriteFile,
+}));
+
 const baseChar: CharacterData = {
   className: 'fighter',
   level: '3',
@@ -240,52 +252,35 @@ describe('buildSheetData()', () => {
 // -- exportCharacterSheet() --------------------------------------------------
 
 describe('exportCharacterSheet()', () => {
-  const mockWriteFile = vi.fn();
-  const mockAoaToSheet = vi.fn().mockReturnValue({});
-  const mockBookNew = vi.fn().mockReturnValue({});
-  const mockBookAppendSheet = vi.fn();
-
-  beforeEach(() => {
-    (globalThis as any).XLSX = {
-      utils: {
-        aoa_to_sheet: mockAoaToSheet,
-        book_new: mockBookNew,
-        book_append_sheet: mockBookAppendSheet,
-      },
-      writeFile: mockWriteFile,
-    };
-  });
-
   afterEach(() => {
     vi.clearAllMocks();
-    delete (globalThis as any).XLSX;
   });
 
-  it('calls XLSX.writeFile once', () => {
-    exportCharacterSheet(baseChar);
+  it('calls XLSX.writeFile once', async () => {
+    await exportCharacterSheet(baseChar);
     expect(mockWriteFile).toHaveBeenCalledOnce();
   });
 
-  it('uses class and level in filename', () => {
-    exportCharacterSheet(baseChar);
+  it('uses class and level in filename', async () => {
+    await exportCharacterSheet(baseChar);
     const [, filename] = mockWriteFile.mock.calls[0];
     expect(filename).toBe('fighter_Lvl3_Sheet.xlsx');
   });
 
-  it('replaces + with - in multiclass filename', () => {
-    exportCharacterSheet({ ...baseChar, className: 'fighter+mage', level: '5' });
+  it('replaces + with - in multiclass filename', async () => {
+    await exportCharacterSheet({ ...baseChar, className: 'fighter+mage', level: '5' });
     const [, filename] = mockWriteFile.mock.calls[0];
     expect(filename).toBe('fighter-mage_Lvl5_Sheet.xlsx');
   });
 
-  it('falls back to "Character" when className is empty', () => {
-    exportCharacterSheet({ ...baseChar, className: '' });
+  it('falls back to "Character" when className is empty', async () => {
+    await exportCharacterSheet({ ...baseChar, className: '' });
     const [, filename] = mockWriteFile.mock.calls[0];
     expect(filename).toMatch(/^Character_Lvl/);
   });
 
-  it('passes the aoa to aoa_to_sheet', () => {
-    exportCharacterSheet(baseChar);
+  it('passes the aoa to aoa_to_sheet', async () => {
+    await exportCharacterSheet(baseChar);
     const [aoa] = mockAoaToSheet.mock.calls[0];
     expect(Array.isArray(aoa)).toBe(true);
     expect(aoa).toHaveLength(50);

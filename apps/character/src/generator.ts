@@ -1275,9 +1275,14 @@ export class Generator {
     if (this.rangerHisDisplay) this.rangerHisDisplay.textContent = `${his}%`;
   };
 
-  exportSheet = () => {
+  exportSheet = async () => {
     const data = this.getCharacterData();
-    exportCharacterSheet(data);
+    try {
+      await exportCharacterSheet(data);
+    } catch {
+      alert('The Excel export could not be loaded. Check your connection and try again.');
+      return;
+    }
     track('character_exported', { class: data.className || 'none', race: data.race || 'none' });
   };
 }

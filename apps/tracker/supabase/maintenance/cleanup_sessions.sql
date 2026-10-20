@@ -1,5 +1,6 @@
 -- Remove old online sessions. Not a migration: run it by hand in the Supabase SQL editor whenever
 -- test sessions have piled up. The client cannot delete sessions (sessions is unreadable to it).
+-- schedule_cleanup.sql runs the same delete automatically every day; use this file to preview it.
 --
 -- Deleting a session cascades to its session_views, players and declarations.
 --
