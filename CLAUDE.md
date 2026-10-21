@@ -8,6 +8,7 @@ Monorepo of three vanilla TypeScript + Vite apps for AD&D 2e DMs. No UI framewor
 - `apps/dungeon` seeded dungeon generator (browser only)
 - `apps/tracker` initiative tracker, with a Supabase backend for online play (see `apps/tracker/CLAUDE.md`)
 - `apps/web` launcher page for the whole site
+- `apps/extension` Chrome side panel for players: the tracker's player page packaged as an extension (see its README)
 - `packages/dice` `@platform2e/dice`: `Rng` interface, `SeededRng`, `CryptoRng`, dice helpers
 - `packages/monsters` `@platform2e/monsters`: monster library, `findMonster`, `rollHD`
 - `packages/ui` `@platform2e/ui`: `el`/`btn`/`mount` DOM helpers, the shared theme tokens, the platform nav bar and its context-sensitive Help panel
