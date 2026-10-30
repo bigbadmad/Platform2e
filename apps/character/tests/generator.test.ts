@@ -3,7 +3,7 @@ import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { Generator } from '../src/generator.js';
-import { calcDexMods, calcConMods } from '../src/statCalc.js';
+import { calcDexMods, calcConMods, calcStrMods } from '../src/statCalc.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -147,5 +147,24 @@ describe('Generator – racial adjustments and derived modifiers', () => {
 
     expect(byId('con').value).toBe('15');
     expect(gen.hpAdj).toBe(calcConMods(15, true).hpAdj);
+  });
+  it('uses the race-adjusted strength for the exceptional strength % in DM mode', () => {
+    gen.dmMode();
+    const str = byId('str');
+    str.value = '19';
+    str.dispatchEvent(new Event('input'));
+
+    pickRace('human');
+    const classSel = document.getElementById('class') as HTMLSelectElement;
+    classSel.selectedIndex = Array.from(classSel.options).findIndex(o => o.value === 'fighter' && !o.disabled);
+    gen.setClass(classSel);
+    pickRace('halfling'); // -1 Str: 19 -> 18
+
+    expect(str.value).toBe('18');
+    const pct = byId('percent');
+    pct.value = '95';
+    pct.dispatchEvent(new Event('input'));
+
+    expect(text('hitProb')).toBe(calcStrMods(18, true, 95).hitProb.toString());
   });
 });

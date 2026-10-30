@@ -869,7 +869,7 @@ export class Generator {
     const pctFn = () => {
       const raw = this.inputPercent.value.trim();
       this.prcStr = raw === '00' ? 100 : (parseInt(raw) || 0);
-      const m = calcStrMods(this.strInit, this.isFighter, this.prcStr);
+      const m = calcStrMods(parseInt(this.inputStr.value) || 0, this.isFighter, this.prcStr);
       this.hitProb = m.hitProb;
       this.DmgAdj  = m.dmgAdj;
       this.labelWgtAllow.textContent = m.wghtAllow.toString();
