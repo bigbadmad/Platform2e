@@ -344,6 +344,7 @@ export class Generator {
 
   clearControls = () => {
     this.isFighter = false;
+    this.zeroMOds();
     this.inputOne.value = '';
     this.inputTwo.value = '';
     this.inputThree.value = '';
@@ -463,41 +464,42 @@ export class Generator {
     const val = parseInt(this.getInputValue(box));
     switch (ddl.selectedIndex) {
       case 1:
+        // Scores shown, and the modifiers derived from them, include any racial adjustment
         this.strInit = val;
-        this.inputStr.value = this.strInit.toString();
+        this.inputStr.value = (val + this.strMod).toString();
         this.removeOption(1);
         this.prcStr = 0; // force a fresh roll in gen mode
-        this.checkForStrMods(this.strInit);
+        this.checkForStrMods(val + this.strMod);
         break;
       case 2:
         this.dexInit = val;
-        this.inputDex.value = this.dexInit.toString();
+        this.inputDex.value = (val + this.dexMod).toString();
         this.removeOption(2);
-        this.setDexMods(this.dexInit);
+        this.setDexMods(val + this.dexMod);
         break;
       case 3:
         this.conInit = val;
-        this.inputCon.value = this.conInit.toString();
+        this.inputCon.value = (val + this.conMod).toString();
         this.removeOption(3);
-        this.setConMods(this.conInit);
+        this.setConMods(val + this.conMod);
         break;
       case 4:
         this.intInit = val;
-        this.inputInt.value = this.intInit.toString();
+        this.inputInt.value = (val + this.intMod).toString();
         this.removeOption(4);
-        this.setIntMods(this.intInit);
+        this.setIntMods(val + this.intMod);
         break;
       case 5:
         this.wisInit = val;
-        this.inputWis.value = this.wisInit.toString();
+        this.inputWis.value = (val + this.wisMod).toString();
         this.removeOption(5);
-        this.setWisMods(this.wisInit);
+        this.setWisMods(val + this.wisMod);
         break;
       case 6:
         this.chrInit = val;
-        this.inputChr.value = this.chrInit.toString();
+        this.inputChr.value = (val + this.chrMod).toString();
         this.removeOption(6);
-        this.setCharMods(this.chrInit);
+        this.setCharMods(val + this.chrMod);
         break;
       default:
         throw new Error('Impossible stat selected');
@@ -712,8 +714,8 @@ export class Generator {
     const selected = this.getSelectedClasses();
     const hasFightery = selected.some(c => c === Classes.fighter || c === Classes.paladin || c === Classes.ranger);
     this.isFighter = hasFightery;
-    this.checkForStrMods(this.strInit);
-    this.setConMods(this.conInit);
+    this.checkForStrMods(parseInt(this.inputStr.value) || 0);
+    this.setConMods(parseInt(this.inputCon.value) || 0);
 
     // Hit dice heuristic: pick the highest HD among selected classes (Ftr d10, Priest d8, Rogue d6, Wizard d4)
     const hdFor = (c: Classes) => {
@@ -761,13 +763,23 @@ export class Generator {
     this.strMod = 0; this.dexMod = 0; this.conMod = 0; this.intMod = 0; this.wisMod = 0; this.chrMod = 0;
   };
 
-  applyRacialMods = () => {
-    this.inputStr.value = (this.strMod == 0 ? this.inputStr.value : parseInt(this.inputStr.value) + this.strMod).toString();
-    this.inputDex.value = (this.dexMod == 0 ? this.inputDex.value : parseInt(this.inputDex.value) + this.dexMod).toString();
-    this.inputChr.value = (this.chrMod == 0 ? this.inputChr.value : parseInt(this.inputChr.value) + this.chrMod).toString();
-    this.inputCon.value = (this.conMod == 0 ? this.inputCon.value : parseInt(this.inputCon.value) + this.conMod).toString();
-    this.inputInt.value = (this.intMod == 0 ? this.inputInt.value : parseInt(this.inputInt.value) + this.intMod).toString();
-    this.inputWis.value = (this.wisMod == 0 ? this.inputWis.value : parseInt(this.inputWis.value) + this.wisMod).toString();
+  // Move each assigned score from the racial mods in `prev` to the current ones, then
+  // recompute what is derived from it. Blank (not yet assigned) scores are left alone.
+  applyRacialMods = (prev: { str: number; dex: number; con: number; int: number; wis: number; chr: number }) => {
+    const rows: [HTMLInputElement, number, (score: number) => void][] = [
+      [this.inputStr, this.strMod - prev.str, this.checkForStrMods],
+      [this.inputDex, this.dexMod - prev.dex, this.setDexMods],
+      [this.inputCon, this.conMod - prev.con, this.setConMods],
+      [this.inputInt, this.intMod - prev.int, this.setIntMods],
+      [this.inputWis, this.wisMod - prev.wis, this.setWisMods],
+      [this.inputChr, this.chrMod - prev.chr, this.setCharMods],
+    ];
+    for (const [input, delta, refresh] of rows) {
+      if (!input.value) continue;
+      const score = parseInt(input.value) + delta;
+      input.value = score.toString();
+      refresh(score);
+    }
   };
 
   disableSelectionOpts(options: ArrayLike<HTMLOptionElement>) {
@@ -857,7 +869,7 @@ export class Generator {
     const pctFn = () => {
       const raw = this.inputPercent.value.trim();
       this.prcStr = raw === '00' ? 100 : (parseInt(raw) || 0);
-      const m = calcStrMods(this.strInit, this.isFighter, this.prcStr);
+      const m = calcStrMods(parseInt(this.inputStr.value) || 0, this.isFighter, this.prcStr);
       this.hitProb = m.hitProb;
       this.DmgAdj  = m.dmgAdj;
       this.labelWgtAllow.textContent = m.wghtAllow.toString();
@@ -892,6 +904,7 @@ export class Generator {
 
   // Add racial mods
   setRace = (ddl: HTMLSelectElement) => {
+    const prev = { str: this.strMod, dex: this.dexMod, con: this.conMod, int: this.intMod, wis: this.wisMod, chr: this.chrMod };
     this.zeroMOds();
     switch (ddl.selectedIndex) {
       case 1: this.enableClassDdl(Races.human); break; // human
@@ -902,8 +915,9 @@ export class Generator {
       case 6: this.enableClassDdl(Races.halfElf); break; // half elf
       default: throw Error('Unknown race');
     }
-    this.applyRacialMods();
-    // Race changed; refresh multiclass options and re-roll physical/age
+    this.applyRacialMods(prev);
+    // Race changed; refresh class options (minimums use the adjusted scores), multiclass options and re-roll physical/age
+    this.refreshClassDdl();
     this.refreshMulticlassOptions();
     this.calcPhysical();
     this.calcAge();
